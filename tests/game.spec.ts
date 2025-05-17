@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { Game } from "../src/game/game";
+import { isGameReady } from "./utils";
 
-/* eslint-disable no-undef */
 test.describe("game", () => {
   test.beforeEach(async ({ page }) => {
     page.on("console", (message) => {
@@ -12,33 +12,7 @@ test.describe("game", () => {
     await page.goto("/");
 
     // Wait for React app to initialize and game to be ready
-    await page.waitForFunction(
-      () => {
-        // Check if game container exists
-        // eslint-disable-next-line no-undef
-        const container = document.getElementById("game-container");
-        if (!container) return false;
-
-        // Check if canvas exists and is visible
-        const canvas = container.querySelector("canvas");
-        if (!canvas || !canvas.isConnected) return false;
-
-        // Check if game instance exists and is initialized
-        // @ts-expect-error window.game is not typed
-        // eslint-disable-next-line no-undef
-        const game = window.game;
-        if (!game) return false;
-
-        // Check if game has a player ant
-        const position = game.getPlayerPosition();
-        return (
-          position !== undefined &&
-          position.x !== undefined &&
-          position.y !== undefined
-        );
-      },
-      { timeout: 5000 }
-    );
+    await page.waitForFunction(isGameReady, { timeout: 5000 });
 
     // Additional wait to ensure game loop is running
     await page.waitForTimeout(100);
