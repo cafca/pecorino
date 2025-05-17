@@ -146,8 +146,8 @@ export class Game {
     // Create player ant
     this.createAnt(0, 32, true);
 
-    // Create AI ants in random positions around center
-    for (let i = 0; i < 30; i++) {
+    // Create 4 AI ants in random positions around center
+    for (let i = 0; i < 4; i++) {
       const radius = Math.random() * 300; // Random radius up to 300 pixels
       const angle = Math.random() * Math.PI * 2; // Random angle
       const x = Math.cos(angle) * radius; // Convert to x coordinate
