@@ -2,6 +2,12 @@ import React, { useEffect, useState } from "react";
 import { Game } from "./game/game";
 import { HUD } from "./game/HUD";
 
+declare global {
+  interface Window {
+    game?: Game;
+  }
+}
+
 export const App: React.FC = () => {
   const [game, setGame] = useState<Game | null>(null);
   const [hudState, setHudState] = useState({
@@ -16,6 +22,9 @@ export const App: React.FC = () => {
       const gameInstance = await Game.create();
       setGame(gameInstance);
 
+      // Make game instance available globally for testing
+      window.game = gameInstance;
+
       // Set up HUD update interval
       const hudInterval = setInterval(() => {
         if (gameInstance) {
@@ -25,6 +34,8 @@ export const App: React.FC = () => {
 
       return () => {
         clearInterval(hudInterval);
+        // Clean up global game instance
+        delete window.game;
       };
     };
 

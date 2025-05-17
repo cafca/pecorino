@@ -1,18 +1,16 @@
 import { test, expect } from "@playwright/test";
 import { Game } from "../src/game/game";
-
-interface Window {
-  game: Game;
-}
+import { isGameReady } from "./utils";
 
 test.describe("Ant Movement", () => {
-  let window: Window;
-
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await page.waitForSelector("canvas");
 
-    window = await page.evaluate(() => window);
+    // Wait for React app to initialize and game to be ready
+    await page.waitForFunction(isGameReady, { timeout: 5000 });
+
+    // Additional wait to ensure game loop is running
+    await page.waitForTimeout(100);
 
     page.on("console", (message) => {
       // eslint-disable-next-line no-undef
@@ -20,56 +18,117 @@ test.describe("Ant Movement", () => {
     });
   });
 
-  test.only("ant moves with arrow keys", async ({ page }) => {
-    // Initiale Position der Ameise
+  test("player ant moves with arrow keys", async ({ page }) => {
+    // Get initial position
     const initialPosition = await page.evaluate(() => {
-      const game = window.game;
-      if (!game) return { x: 0, y: 0 };
+      // @ts-expect-error window.game is not typed
+      // eslint-disable-next-line no-undef
+      const game: Game = window.game;
       return game.getPlayerPosition();
     });
 
-    // Pfeiltaste nach rechts drücken und halten
+    // Press right arrow key
     await page.keyboard.down("ArrowRight");
-    await page.waitForTimeout(100); // Kurze Pause für die Bewegung
-
-    // Neue Position überprüfen
-    const newPosition = await page.evaluate(() => {
-      const game = window.game;
-      if (!game) return { x: 0, y: 0 };
-      return game.getPlayerPosition();
-    });
-
-    // Taste loslassen
+    await page.waitForTimeout(100);
     await page.keyboard.up("ArrowRight");
 
-    // Überprüfen, ob sich die Ameise nach rechts bewegt hat
+    // Get new position
+    const newPosition = await page.evaluate(() => {
+      // @ts-expect-error window.game is not typed
+      // eslint-disable-next-line no-undef
+      const game: Game = window.game;
+      return game.getPlayerPosition();
+    });
+
+    // Verify player ant moved right
     expect(newPosition.x).toBeGreaterThan(initialPosition.x);
-    expect(newPosition.y).toBe(initialPosition.y); // Y-Position sollte sich nicht ändern
+    expect(newPosition.y).toBe(initialPosition.y); // Y position should not change
   });
 
-  test("ant moves with WASD keys", async ({ page }) => {
-    // Initiale Position
+  test("player ant moves with WASD keys", async ({ page }) => {
+    // Get initial position
     const initialPosition = await page.evaluate(() => {
-      const game = window.game;
-      if (!game) return { x: 0, y: 0 };
+      // @ts-expect-error window.game is not typed
+      // eslint-disable-next-line no-undef
+      const game: Game = window.game;
       return game.getPlayerPosition();
     });
 
-    // D-Taste drücken und halten (rechts)
+    // Press D key
     await page.keyboard.down("d");
-    await page.waitForTimeout(100); // Kurze Pause für die Bewegung
-
-    // Neue Position überprüfen
-    const newPosition = await page.evaluate(() => {
-      const game = window.game;
-      if (!game) return { x: 0, y: 0 };
-      return game.getPlayerPosition();
-    });
-
-    // Taste loslassen
+    await page.waitForTimeout(100);
     await page.keyboard.up("d");
 
+    // Get new position
+    const newPosition = await page.evaluate(() => {
+      // @ts-expect-error window.game is not typed
+      // eslint-disable-next-line no-undef
+      const game: Game = window.game;
+      return game.getPlayerPosition();
+    });
+
+    // Verify player ant moved right
     expect(newPosition.x).toBeGreaterThan(initialPosition.x);
     expect(newPosition.y).toBe(initialPosition.y);
+  });
+
+  test("player ant moves diagonally with multiple keys", async ({ page }) => {
+    // Get initial position
+    const initialPosition = await page.evaluate(() => {
+      // @ts-expect-error window.game is not typed
+      // eslint-disable-next-line no-undef
+      const game: Game = window.game;
+      return game.getPlayerPosition();
+    });
+
+    // Press D and S keys simultaneously
+    await page.keyboard.down("d");
+    await page.keyboard.down("s");
+    await page.waitForTimeout(100);
+    await page.keyboard.up("d");
+    await page.keyboard.up("s");
+
+    // Get new position
+    const newPosition = await page.evaluate(() => {
+      // @ts-expect-error window.game is not typed
+      // eslint-disable-next-line no-undef
+      const game: Game = window.game;
+      return game.getPlayerPosition();
+    });
+
+    // Verify player ant moved diagonally
+    expect(newPosition.x).toBeGreaterThan(initialPosition.x);
+    expect(newPosition.y).toBeGreaterThan(initialPosition.y);
+  });
+
+  test("player ant stops when no keys are pressed", async ({ page }) => {
+    // Get initial position
+    const initialPosition = await page.evaluate(() => {
+      // @ts-expect-error window.game is not typed
+      // eslint-disable-next-line no-undef
+      const game: Game = window.game;
+      return game.getPlayerPosition();
+    });
+
+    // Press D key
+    await page.keyboard.down("d");
+    await page.waitForTimeout(100);
+    // Release D key
+    await page.keyboard.up("d");
+
+    // Wait for ant to stop
+    await page.waitForTimeout(100);
+
+    // Get final position
+    const finalPosition = await page.evaluate(() => {
+      // @ts-expect-error window.game is not typed
+      // eslint-disable-next-line no-undef
+      const game: Game = window.game;
+      return game.getPlayerPosition();
+    });
+
+    // Verify ant has stopped
+    expect(finalPosition.x).toBeGreaterThan(initialPosition.x);
+    expect(finalPosition.y).toBe(initialPosition.y);
   });
 });
