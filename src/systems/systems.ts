@@ -139,7 +139,17 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
       if (sprite) {
         sprite.x = Position.x[eid];
         sprite.y = Position.y[eid];
-        sprite.rotation = Math.atan2(Velocity.y[eid], Velocity.x[eid]);
+        // Only rotate ants, keep food and nest upright
+        if (Sprite.texture[eid] === 0) {
+          // 0 is ant texture
+          // Calculate rotation based on velocity for both player and AI ants
+          if (Velocity.x[eid] !== 0 || Velocity.y[eid] !== 0) {
+            sprite.rotation =
+              Math.atan2(Velocity.y[eid], Velocity.x[eid]) + Math.PI;
+          }
+        } else {
+          sprite.rotation = 0;
+        }
       }
     }
 
@@ -170,13 +180,15 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
             const alpha = Math.min(strength, 1);
             const color = 0x00ff00 + Math.floor(alpha * 0x0000ff); // Green to blue gradient
 
-            // Draw a small circle for each pheromone point
-            pheromoneGraphics.beginFill(color, alpha * 0.5);
-            pheromoneGraphics.drawCircle(worldX, worldY, 0.2);
+            // Draw a larger circle for each pheromone point
+            pheromoneGraphics.beginFill(color, alpha * 0.2);
+            pheromoneGraphics.drawCircle(worldX, worldY, 5.0);
             pheromoneGraphics.endFill();
           }
         }
       }
+    } else {
+      console.warn("No pheromone grid found in game instance");
     }
   };
 };
@@ -194,9 +206,6 @@ export const PheromoneDepositSystem =
           const y = Position.y[eid];
           const strength = PheromoneEmitter.strength[eid];
           pheromoneGrid.deposit(x, y, strength);
-          console.log(
-            `Ant ${eid} deposited pheromone at (${x.toFixed(1)}, ${y.toFixed(1)}) with strength ${strength}`
-          );
         }
       }
     };
@@ -253,11 +262,6 @@ export const PheromoneFollowSystem =
                 const sampleX = x + dx;
                 const sampleY = y + dy;
                 const value = pheromoneGrid.sample(sampleX, sampleY);
-                if (value > 0) {
-                  console.log(
-                    `Ant ${eid} detected pheromone at (${sampleX.toFixed(1)}, ${sampleY.toFixed(1)}) with strength ${value.toFixed(2)}`
-                  );
-                }
                 samples.push({
                   angle: Math.atan2(dy, dx),
                   x: sampleX,
@@ -279,9 +283,6 @@ export const PheromoneFollowSystem =
             const len = Math.sqrt(sumX * sumX + sumY * sumY);
             vx = (sumX / len) * 100 * sensitivity;
             vy = (sumY / len) * 100 * sensitivity;
-            console.log(
-              `Ant ${eid} following pheromone trail: total strength ${total.toFixed(2)}, direction (${vx.toFixed(1)}, ${vy.toFixed(1)})`
-            );
           }
           Velocity.x[eid] = vx;
           Velocity.y[eid] = vy;
