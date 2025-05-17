@@ -1,3 +1,13 @@
+/**
+ * Manages a grid-based pheromone system for ant colony simulation.
+ * The grid stores pheromone concentrations that can be deposited, sampled, and updated over time.
+ *
+ * Features:
+ * - Grid-based storage with configurable resolution (default 1/4 tile)
+ * - Pheromone deposition and sampling at world coordinates
+ * - Evaporation and diffusion simulation
+ * - Boundary checking for safe access
+ */
 export class PheromoneGrid {
   private grid: Float32Array;
   private width: number;
