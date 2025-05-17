@@ -66,10 +66,29 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
   const exit = exitQuery(query);
   const sprites = new Map<number, PixiSprite>();
   const container = new Container();
+  const pheromoneContainer = new Container();
   app.stage.addChild(container);
+  app.stage.addChild(pheromoneContainer);
 
-  // Zentriere den Container initial
+  // Center the containers initially
   container.position.set(app.screen.width / 2, app.screen.height / 2);
+  pheromoneContainer.position.set(app.screen.width / 2, app.screen.height / 2);
+  pheromoneContainer.scale.set(1);
+
+  // Create a pool of pheromone sprites to reuse
+  const pheromonePool: PixiSprite[] = [];
+  const activePheromones = new Set<PixiSprite>();
+  const POOL_SIZE = 100; // Maximum number of pheromone sprites to show
+
+  // Initialize the pool
+  for (let i = 0; i < POOL_SIZE; i++) {
+    const sprite = new PixiSprite(Assets.get("circle"));
+    sprite.anchor.set(0.5);
+    sprite.scale.set(0.5);
+    sprite.visible = false;
+    pheromoneContainer.addChild(sprite);
+    pheromonePool.push(sprite);
+  }
 
   return () => {
     // Handle new entities
@@ -124,6 +143,58 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
         sprites.delete(eid);
       }
     }
+
+    // Reset all pheromone sprites
+    for (const sprite of activePheromones) {
+      sprite.visible = false;
+      pheromonePool.push(sprite);
+    }
+    activePheromones.clear();
+
+    // Draw pheromones
+    const grid = (window as { game?: { pheromoneGrid: PheromoneGrid } }).game
+      ?.pheromoneGrid;
+    if (grid) {
+      const resolution = grid.getResolution();
+      const width = grid.getGridWidth();
+      const height = grid.getGridHeight();
+      const gridData = grid.getGridData();
+
+      // Collect pheromone points with their strengths
+      const pheromonePoints: { x: number; y: number; strength: number }[] = [];
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const index = y * width + x;
+          const strength = gridData[index];
+          if (strength > 0) {
+            pheromonePoints.push({
+              x: x / resolution,
+              y: y / resolution,
+              strength,
+            });
+          }
+        }
+      }
+
+      // Sort by strength to show strongest pheromones
+      pheromonePoints.sort((a, b) => b.strength - a.strength);
+
+      // Show only the strongest pheromones up to pool size
+      for (let i = 0; i < Math.min(pheromonePoints.length, POOL_SIZE); i++) {
+        const point = pheromonePoints[i];
+        const sprite = pheromonePool.pop();
+        if (sprite) {
+          sprite.x = point.x;
+          sprite.y = point.y;
+          const alpha = Math.min(point.strength, 1);
+          const color = 0x0000ff + Math.floor(alpha * 0xff0000);
+          sprite.tint = color;
+          sprite.alpha = alpha;
+          sprite.visible = true;
+          activePheromones.add(sprite);
+        }
+      }
+    }
   };
 };
 
@@ -135,19 +206,42 @@ export const PheromoneDepositSystem =
     return () => {
       const entities = query(world);
       for (const eid of entities) {
+        console.log(`Ant ${eid} state:`, {
+          isEmitting: PheromoneEmitter.isEmitting[eid],
+          foragerState: ForagerRole.state[eid],
+          foodCarried: ForagerRole.foodCarried[eid],
+          position: { x: Position.x[eid], y: Position.y[eid] },
+        });
+
         if (PheromoneEmitter.isEmitting[eid] && ForagerRole.state[eid] === 1) {
           const x = Position.x[eid];
           const y = Position.y[eid];
           const strength = PheromoneEmitter.strength[eid];
           pheromoneGrid.deposit(x, y, strength);
+          console.log(
+            `Ant ${eid} deposited pheromone at (${x.toFixed(1)}, ${y.toFixed(1)}) with strength ${strength}`
+          );
         }
       }
     };
   };
 
-// Pheromone Follow System
+// Debug info type for pheromone following
+export type PheromoneFollowDebugInfo = {
+  eid: number;
+  position: { x: number; y: number };
+  samples: { angle: number; x: number; y: number; value: number }[];
+  bestDirection: { x: number; y: number; angle: number; value: number };
+  velocity: { x: number; y: number };
+};
+
+// Pheromone Follow System with optional debug callback
 export const PheromoneFollowSystem =
-  (pheromoneGrid: PheromoneGrid) => (world: IWorld) => {
+  (
+    pheromoneGrid: PheromoneGrid,
+    debugCb?: (info: PheromoneFollowDebugInfo) => void
+  ) =>
+  (world: IWorld) => {
     const query = defineQuery([
       Position,
       Velocity,
@@ -158,35 +252,84 @@ export const PheromoneFollowSystem =
     return () => {
       const entities = query(world);
       for (const eid of entities) {
+        console.log(`Ant ${eid} checking for pheromones:`, {
+          foragerState: ForagerRole.state[eid],
+          position: { x: Position.x[eid], y: Position.y[eid] },
+          sensorRadius: PheromoneSensor.radius[eid],
+        });
+
         if (ForagerRole.state[eid] === 0) {
           const x = Position.x[eid];
           const y = Position.y[eid];
           const radius = PheromoneSensor.radius[eid];
           const sensitivity = PheromoneSensor.sensitivity[eid];
 
-          // Sample pheromone levels in surrounding area
-          let maxPheromone = 0;
-          let bestDirection = { x: 0, y: 0 };
+          // Area-based sampling: sample all grid points within the sensor radius
+          let sumX = 0;
+          let sumY = 0;
+          let total = 0;
+          const samples: {
+            angle: number;
+            x: number;
+            y: number;
+            value: number;
+          }[] = [];
 
-          for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
-            const sampleX = x + Math.cos(angle) * radius;
-            const sampleY = y + Math.sin(angle) * radius;
-            const pheromoneLevel = pheromoneGrid.sample(sampleX, sampleY);
-
-            if (pheromoneLevel > maxPheromone) {
-              maxPheromone = pheromoneLevel;
-              bestDirection = { x: Math.cos(angle), y: Math.sin(angle) };
+          // Sample in a disk around the ant
+          const step = 1; // 1 unit step for sampling
+          for (let dx = -radius; dx <= radius; dx += step) {
+            for (let dy = -radius; dy <= radius; dy += step) {
+              if (dx * dx + dy * dy <= radius * radius) {
+                const sampleX = x + dx;
+                const sampleY = y + dy;
+                const value = pheromoneGrid.sample(sampleX, sampleY);
+                if (value > 0) {
+                  console.log(
+                    `Ant ${eid} detected pheromone at (${sampleX.toFixed(1)}, ${sampleY.toFixed(1)}) with strength ${value.toFixed(2)}`
+                  );
+                }
+                samples.push({
+                  angle: Math.atan2(dy, dx),
+                  x: sampleX,
+                  y: sampleY,
+                  value,
+                });
+                sumX += dx * value;
+                sumY += dy * value;
+                total += value;
+              }
             }
           }
 
-          // Adjust velocity based on pheromone gradient
-          if (maxPheromone > 0) {
-            const speed = Math.sqrt(
-              Velocity.x[eid] * Velocity.x[eid] +
-                Velocity.y[eid] * Velocity.y[eid]
+          // Compute movement direction
+          let vx = 0;
+          let vy = 0;
+          if (total > 0 && (sumX !== 0 || sumY !== 0)) {
+            // Normalize the gradient direction
+            const len = Math.sqrt(sumX * sumX + sumY * sumY);
+            vx = (sumX / len) * 100 * sensitivity;
+            vy = (sumY / len) * 100 * sensitivity;
+            console.log(
+              `Ant ${eid} following pheromone trail: total strength ${total.toFixed(2)}, direction (${vx.toFixed(1)}, ${vy.toFixed(1)})`
             );
-            Velocity.x[eid] = bestDirection.x * speed * sensitivity;
-            Velocity.y[eid] = bestDirection.y * speed * sensitivity;
+          }
+          Velocity.x[eid] = vx;
+          Velocity.y[eid] = vy;
+
+          // For debug
+          if (debugCb) {
+            debugCb({
+              eid,
+              position: { x, y },
+              samples,
+              bestDirection: {
+                x: sumX,
+                y: sumY,
+                angle: Math.atan2(sumY, sumX),
+                value: total,
+              },
+              velocity: { x: vx, y: vy },
+            });
           }
         }
       }

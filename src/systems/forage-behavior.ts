@@ -5,6 +5,7 @@ import {
   Velocity,
   Target,
   PlayerControlled,
+  PheromoneEmitter,
 } from "@/game/components";
 import { removeComponent, defineQuery } from "bitecs";
 import { Sprite } from "pixi.js";
@@ -32,6 +33,7 @@ const findNearestFood = (x: number, y: number, foods: number[]) => {
 const pickupFood = (ant: number, food: number, world: IWorld) => {
   ForagerRole.state[ant] = 1; // Switch to CarryFood
   ForagerRole.foodCarried[ant] = 1;
+  PheromoneEmitter.isEmitting[ant] = 1; // Start emitting pheromones
   Food.amount[food] -= 1;
 
   // Remove food entity if amount reaches 0
@@ -109,6 +111,7 @@ const handleCarryFoodState = (
   if (distToNest < nestRadius) {
     ForagerRole.state[ant] = 0; // Switch back to FindFood
     ForagerRole.foodCarried[ant] = 0;
+    PheromoneEmitter.isEmitting[ant] = 0; // Stop emitting pheromones
     console.log("Food deposited at nest!");
   }
 };

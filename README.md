@@ -1,55 +1,93 @@
-# Insect Simulation Game
+# Pecorino - Ant Colony Simulation
 
-Ein ECS-basiertes Insektensimulationsspiel mit PixiJS-Rendering.
-
-## Voraussetzungen
-
-- Node.js 18 oder höher
-- npm 9 oder höher
-
-## Installation
-
-```bash
-npm install
-```
-
-## Entwicklung
-
-```bash
-npm run dev
-```
-
-## Tests ausführen
-
-```bash
-# Unit Tests
-npm test
-
-# Unit Tests im Watch-Modus
-npm run test:watch
-
-# End-to-End Tests
-npm run test:e2e
-```
-
-## Build
-
-```bash
-npm run build
-```
+A real-time ant colony simulation game where you control an ant and interact with AI-controlled ants in a dynamic environment.
 
 ## Features
 
-- ECS-basierte Architektur mit bitecs
-- PixiJS-Rendering mit 1:1 Pixel-Art-Skalierung
-- Steuerung mit WASD/Pfeiltasten
-- Kamera folgt dem Spieler
-- Unendlich scrollende Karte
+### Ant Movement
 
-## Projektstruktur
+- **Player Control**: Control your ant using either:
+  - Arrow keys (↑, ↓, ←, →)
+  - WASD keys
+- **Movement Mechanics**:
+  - Smooth movement in all directions
+  - Diagonal movement when pressing multiple keys
+  - Momentum-based movement system
+  - Automatic stopping when no keys are pressed
 
-- `src/game/components.ts` - ECS-Komponenten
-- `src/game/systems.ts` - ECS-Systeme
-- `src/game/game.ts` - Hauptspiellogik
-- `src/__tests__/` - Unit Tests
-- `assets/` - Spiele-Assets (Sprites, Karten, etc.)
+### Ant Colony
+
+- **Player Ant**: A special ant that you can control directly
+- **AI Ants**: Multiple AI-controlled ants that:
+  - Follow pheromone trails
+  - Search for food
+  - Return to the nest
+  - Interact with the environment
+
+### Pheromone System
+
+- **Trail Creation**: Ants leave pheromone trails as they move
+- **Trail Following**: AI ants can detect and follow pheromone trails
+- **Trail Decay**: Pheromones gradually fade over time
+- **Grid-based System**: Efficient pheromone tracking using a tile-based grid
+
+### Food System
+
+- **Food Collection**: Ants can pick up and carry food
+- **Food Spawning**: New food items spawn periodically
+- **Food Tracking**: Visual indication when ants are carrying food (red tint)
+
+### Game Controls
+
+- **Speed Control**: Toggle between normal and fast simulation speed
+- **Spawn Rate**: Adjust the rate at which new food items appear
+- **HUD Display**: Shows current:
+  - Food count in colony
+  - Number of ants
+  - Simulation speed
+  - Food spawn rate
+
+### Technical Features
+
+- Built with React and TypeScript
+- Uses PixiJS for rendering
+- ECS (Entity Component System) architecture
+- Real-time physics simulation
+- Responsive design that adapts to window size
+
+## Development
+
+### Prerequisites
+
+- Node.js (latest LTS version recommended)
+- npm or yarn
+
+### Setup
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+### Testing
+
+Run the test suite:
+
+```bash
+npm test
+```
+
+Run end-to-end tests:
+
+```bash
+npm run test:e2e
+```
+
+## License
+
+MIT

@@ -20,6 +20,7 @@ import {
   ForageBehaviorSystem,
 } from "../systems/systems";
 import { PheromoneGrid } from "./pheromoneGrid";
+import { Graphics } from "pixi.js";
 
 export class Game {
   public readonly world = createWorld();
@@ -58,24 +59,29 @@ export class Game {
     this.forageBehaviorSystem = ForageBehaviorSystem(this.world);
   }
 
-  private async loadAssets(): Promise<void> {
-    // Ant
+  private async initAssets() {
+    // Add assets to the bundle
     Assets.add({
       alias: "ant",
       src: "/assets/sprites/ant.png",
     });
-    // Food
     Assets.add({
       alias: "food",
       src: "/assets/sprites/food.png",
     });
-    // Nest
     Assets.add({
       alias: "nest",
       src: "/assets/sprites/nest.png",
     });
-    const textures = await Assets.load(["ant", "food", "nest"]);
-    console.log("Assets loaded", textures);
+
+    // Load all assets
+    await Assets.load(["ant", "food", "nest"]);
+
+    // Create circle texture for pheromones
+    const circleGraphics = new Graphics();
+    circleGraphics.circle(0, 0, 10).fill(0xffffff);
+    const circleTexture = this.app.renderer.generateTexture(circleGraphics);
+    Assets.cache.set("circle", circleTexture);
   }
 
   private createAnt(x: number, y: number, isPlayer: boolean = false) {
@@ -103,7 +109,7 @@ export class Game {
     Sprite.scale[ant] = 0.1;
     PheromoneEmitter.strength[ant] = 1.0;
     PheromoneEmitter.isEmitting[ant] = 0;
-    PheromoneSensor.radius[ant] = 20;
+    PheromoneSensor.radius[ant] = 50;
     PheromoneSensor.sensitivity[ant] = 0.5;
     ForagerRole.state[ant] = 0;
     ForagerRole.foodCarried[ant] = 0;
@@ -222,7 +228,7 @@ export class Game {
     gameContainer.appendChild(app.canvas);
 
     const game = new Game(app);
-    await game.loadAssets();
+    await game.initAssets();
     game.initDemo();
     game.initGameLoop();
     game.initResizeHandler();
@@ -269,6 +275,11 @@ export class Game {
       simulationSpeed: this.simulationSpeed,
       spawnRate: this.spawnRate,
     };
+  }
+
+  // Test helper method to access pheromoneGrid
+  public getPheromoneGridForTesting(): PheromoneGrid {
+    return this.pheromoneGrid;
   }
 
   public toggleSimulationSpeed() {

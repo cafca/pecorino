@@ -15,6 +15,7 @@ import {
   PheromoneFollowSystem,
   ForageBehaviorSystem,
 } from "../systems/systems";
+import type { PheromoneFollowDebugInfo } from "../systems/systems";
 
 describe("PheromoneGrid", () => {
   let grid: PheromoneGrid;
@@ -45,6 +46,49 @@ describe("PheromoneGrid", () => {
     // Check if diffusion occurred
     const neighborValue = grid.sample(5.25, 5);
     expect(neighborValue).toBeGreaterThan(0);
+  });
+
+  test("multiple deposits accumulate", () => {
+    grid.deposit(5, 5, 1.0);
+    grid.deposit(5, 5, 1.0);
+    expect(grid.sample(5, 5)).toBeCloseTo(2.0);
+  });
+
+  test("boundary conditions", () => {
+    // Test depositing outside grid
+    grid.deposit(-1, -1, 1.0);
+    grid.deposit(100, 100, 1.0);
+    expect(grid.sample(-1, -1)).toBe(0);
+    expect(grid.sample(100, 100)).toBe(0);
+  });
+
+  test("grid resolution accuracy", () => {
+    // Test depositing at sub-grid positions
+    grid.deposit(5.25, 5.25, 1.0);
+    expect(grid.sample(5.25, 5.25)).toBeCloseTo(1.0);
+    expect(grid.sample(5.5, 5.5)).toBe(0); // Should not affect adjacent cells
+  });
+
+  test("trail formation and decay", () => {
+    // Create a trail by depositing in a line
+    for (let i = 0; i < 5; i++) {
+      grid.deposit(5 + i, 5, 1.0);
+    }
+
+    // Check initial trail strength
+    for (let i = 0; i < 5; i++) {
+      expect(grid.sample(5 + i, 5)).toBeCloseTo(1.0);
+    }
+
+    // Simulate time passing
+    for (let i = 0; i < 20; i++) {
+      grid.update(0.1);
+    }
+
+    // Trail should have decayed
+    for (let i = 0; i < 5; i++) {
+      expect(grid.sample(5 + i, 5)).toBeLessThan(1.0);
+    }
   });
 });
 
@@ -105,5 +149,178 @@ describe("Foraging System", () => {
     }
 
     expect(foodReached).toBe(true);
+  });
+});
+
+describe("Pheromone Systems", () => {
+  let world: ReturnType<typeof createWorld>;
+  let grid: PheromoneGrid;
+
+  beforeEach(() => {
+    world = createWorld();
+    grid = new PheromoneGrid(10, 10);
+  });
+
+  test("pheromone deposit system", () => {
+    const ant = addEntity(world);
+    addComponent(world, Position, ant);
+    addComponent(world, PheromoneEmitter, ant);
+    addComponent(world, ForagerRole, ant);
+
+    Position.x[ant] = 5;
+    Position.y[ant] = 5;
+    PheromoneEmitter.strength[ant] = 1.0;
+    PheromoneEmitter.isEmitting[ant] = 1;
+    ForagerRole.state[ant] = 1;
+
+    const depositSystem = PheromoneDepositSystem(grid)(world);
+    depositSystem();
+
+    expect(grid.sample(5, 5)).toBeCloseTo(1.0);
+  });
+
+  test("pheromone follow system", () => {
+    const ant = addEntity(world);
+    addComponent(world, Position, ant);
+    addComponent(world, Velocity, ant);
+    addComponent(world, PheromoneSensor, ant);
+    addComponent(world, ForagerRole, ant);
+
+    Position.x[ant] = 0.25;
+    Position.y[ant] = 0.25;
+    Velocity.x[ant] = 0;
+    Velocity.y[ant] = 0;
+    PheromoneSensor.radius[ant] = 1;
+    PheromoneSensor.sensitivity[ant] = 0.5;
+    ForagerRole.state[ant] = 0;
+
+    // Create a pheromone trail with a gradient to the right
+    grid.deposit(0.25, 0.25, 1.0); // Center
+    grid.deposit(1.25, 0.25, 2.0); // Right, stronger
+
+    let debugInfo: PheromoneFollowDebugInfo | undefined = undefined;
+    const followSystem = PheromoneFollowSystem(
+      grid,
+      (info: PheromoneFollowDebugInfo) => {
+        if (info.eid === ant) debugInfo = info;
+      }
+    )(world);
+    followSystem();
+
+    // Debug output
+    if (debugInfo) {
+      const info = debugInfo as PheromoneFollowDebugInfo;
+      // Assert that at least one sample is nonzero
+      expect(
+        info.samples.some(
+          (s: { angle: number; x: number; y: number; value: number }) =>
+            s.value > 0
+        )
+      ).toBe(true);
+      // Assert that the best direction points roughly towards the pheromone
+      expect(info.bestDirection.value).toBeGreaterThan(0);
+      // Assert that the resulting velocity is nonzero
+      expect(
+        Math.abs(info.velocity.x) + Math.abs(info.velocity.y)
+      ).toBeGreaterThan(0);
+    } else {
+      throw new Error("No debug info captured for ant");
+    }
+  });
+
+  test("multiple ants following trail", () => {
+    // Create two ants
+    const ant1 = addEntity(world);
+    const ant2 = addEntity(world);
+
+    // Add components to both ants
+    [ant1, ant2].forEach((ant) => {
+      addComponent(world, Position, ant);
+      addComponent(world, Velocity, ant);
+      addComponent(world, PheromoneSensor, ant);
+      addComponent(world, ForagerRole, ant);
+
+      Position.x[ant] = 0.25;
+      Position.y[ant] = 0.25;
+      Velocity.x[ant] = 0;
+      Velocity.y[ant] = 0;
+      PheromoneSensor.radius[ant] = 1; // Smaller radius to match grid resolution
+      PheromoneSensor.sensitivity[ant] = 0.5;
+      ForagerRole.state[ant] = 0;
+    });
+
+    // Create a pheromone trail with a gradient to the right for both ants
+    grid.deposit(0.25, 0.25, 1.0); // Center
+    grid.deposit(1.25, 0.25, 2.0); // Right, stronger
+
+    let debugInfo1: PheromoneFollowDebugInfo | undefined = undefined;
+    let debugInfo2: PheromoneFollowDebugInfo | undefined = undefined;
+    const followSystem = PheromoneFollowSystem(
+      grid,
+      (info: PheromoneFollowDebugInfo) => {
+        if (info.eid === ant1) debugInfo1 = info;
+        if (info.eid === ant2) debugInfo2 = info;
+      }
+    )(world);
+    followSystem();
+
+    // Debug output for both ants
+    if (debugInfo1 && debugInfo2) {
+      const info1 = debugInfo1 as PheromoneFollowDebugInfo;
+      const info2 = debugInfo2 as PheromoneFollowDebugInfo;
+
+      // Assert that both ants detect the pheromone
+      expect(
+        info1.samples.some(
+          (s: { angle: number; x: number; y: number; value: number }) =>
+            s.value > 0
+        )
+      ).toBe(true);
+      expect(
+        info2.samples.some(
+          (s: { angle: number; x: number; y: number; value: number }) =>
+            s.value > 0
+        )
+      ).toBe(true);
+
+      // Assert that both ants move towards the pheromone
+      expect(info1.bestDirection.value).toBeGreaterThan(0);
+      expect(info2.bestDirection.value).toBeGreaterThan(0);
+      expect(
+        Math.abs(info1.velocity.x) + Math.abs(info1.velocity.y)
+      ).toBeGreaterThan(0);
+      expect(
+        Math.abs(info2.velocity.x) + Math.abs(info2.velocity.y)
+      ).toBeGreaterThan(0);
+    } else {
+      throw new Error("No debug info captured for one or both ants");
+    }
+  });
+
+  test("ant emits pheromones when carrying food and moving", () => {
+    const ant = addEntity(world);
+    addComponent(world, Position, ant);
+    addComponent(world, PheromoneEmitter, ant);
+    addComponent(world, ForagerRole, ant);
+
+    // Set up ant to carry food and emit pheromones
+    PheromoneEmitter.strength[ant] = 1.0;
+    PheromoneEmitter.isEmitting[ant] = 1;
+    ForagerRole.state[ant] = 1; // CarryFood state
+    ForagerRole.foodCarried[ant] = 1;
+
+    const depositSystem = PheromoneDepositSystem(grid)(world);
+
+    // Move ant along a path and deposit pheromones
+    for (let i = 0; i < 5; i++) {
+      Position.x[ant] = i;
+      Position.y[ant] = i;
+      depositSystem();
+    }
+
+    // Check that pheromones were deposited along the path
+    for (let i = 0; i < 5; i++) {
+      expect(grid.sample(i, i)).toBeCloseTo(1.0);
+    }
   });
 });

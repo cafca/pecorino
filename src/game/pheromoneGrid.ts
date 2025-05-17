@@ -20,6 +20,23 @@ export class PheromoneGrid {
     this.grid = new Float32Array(this.width * this.height);
   }
 
+  // Add getter methods
+  getGridWidth(): number {
+    return this.width;
+  }
+
+  getGridHeight(): number {
+    return this.height;
+  }
+
+  getResolution(): number {
+    return this.resolution;
+  }
+
+  getGridData(): Float32Array {
+    return this.grid;
+  }
+
   deposit(x: number, y: number, strength: number): void {
     const gridX = Math.floor(x * this.resolution);
     const gridY = Math.floor(y * this.resolution);
