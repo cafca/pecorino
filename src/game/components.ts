@@ -20,3 +20,29 @@ export const Sprite = defineComponent({
 export const PlayerControlled = defineComponent({
   speed: Types.f32,
 });
+
+// Neue Komponenten für das Pheromon-System
+export const PheromoneEmitter = defineComponent({
+  strength: Types.f32,
+  isEmitting: Types.ui8,
+});
+
+export const PheromoneSensor = defineComponent({
+  radius: Types.f32,
+  sensitivity: Types.f32,
+});
+
+export const ForagerRole = defineComponent({
+  state: Types.ui8, // 0: FindFood, 1: CarryFood, 2: DepositFood
+  foodCarried: Types.ui8,
+});
+
+export const Target = defineComponent({
+  x: Types.f32,
+  y: Types.f32,
+  type: Types.ui8, // 0: Food, 1: Nest
+});
+
+export const Food = defineComponent({
+  amount: Types.f32,
+});

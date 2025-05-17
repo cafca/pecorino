@@ -1,7 +1,18 @@
 import { defineQuery, enterQuery, exitQuery } from "bitecs";
 import type { IWorld } from "bitecs";
 import { Application, Container, Sprite as PixiSprite, Assets } from "pixi.js";
-import { Position, Velocity, Sprite, PlayerControlled } from "./components";
+import {
+  Position,
+  Velocity,
+  Sprite,
+  PlayerControlled,
+  PheromoneEmitter,
+  PheromoneSensor,
+  ForagerRole,
+  Target,
+  Food,
+} from "./components";
+import { PheromoneGrid } from "./pheromoneGrid";
 
 // Input System
 export const InputSystem = (world: IWorld) => {
@@ -11,20 +22,17 @@ export const InputSystem = (world: IWorld) => {
   window.addEventListener("keydown", (e) => {
     const key = e.key.toLowerCase();
     keys.add(key);
-    console.log("Key pressed:", key, "Active keys:", Array.from(keys));
   });
 
   window.addEventListener("keyup", (e) => {
     const key = e.key.toLowerCase();
     keys.delete(key);
-    console.log("Key released:", key, "Active keys:", Array.from(keys));
   });
 
   return () => {
     const entities = query(world);
     for (const eid of entities) {
       const speed = PlayerControlled.speed[eid];
-      const oldVelocity = { x: Velocity.x[eid], y: Velocity.y[eid] };
 
       Velocity.x[eid] = 0;
       Velocity.y[eid] = 0;
@@ -33,17 +41,6 @@ export const InputSystem = (world: IWorld) => {
       if (keys.has("s") || keys.has("arrowdown")) Velocity.y[eid] = speed;
       if (keys.has("a") || keys.has("arrowleft")) Velocity.x[eid] = -speed;
       if (keys.has("d") || keys.has("arrowright")) Velocity.x[eid] = speed;
-
-      if (
-        oldVelocity.x !== Velocity.x[eid] ||
-        oldVelocity.y !== Velocity.y[eid]
-      ) {
-        console.log("Velocity changed:", {
-          entity: eid,
-          old: oldVelocity,
-          new: { x: Velocity.x[eid], y: Velocity.y[eid] },
-        });
-      }
     }
   };
 };
@@ -55,21 +52,8 @@ export const MovementSystem = (world: IWorld) => {
   return (delta: number) => {
     const entities = query(world);
     for (const eid of entities) {
-      const oldPosition = { x: Position.x[eid], y: Position.y[eid] };
-      const velocity = { x: Velocity.x[eid], y: Velocity.y[eid] };
-
       Position.x[eid] += Velocity.x[eid] * delta;
       Position.y[eid] += Velocity.y[eid] * delta;
-
-      if (velocity.x !== 0 || velocity.y !== 0) {
-        console.log("Entity moved:", {
-          entity: eid,
-          delta,
-          velocity,
-          oldPosition,
-          newPosition: { x: Position.x[eid], y: Position.y[eid] },
-        });
-      }
     }
   };
 };
@@ -91,7 +75,6 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
     for (const eid of enter(world)) {
       try {
         const sprite = new PixiSprite(Assets.get("ant"));
-        console.log("Created sprite:", sprite);
         sprite.anchor.set(0.5);
         sprite.scale.set(Sprite.scale[eid]);
         container.addChild(sprite);
@@ -122,6 +105,138 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
         container.removeChild(sprite);
         sprite.destroy();
         sprites.delete(eid);
+      }
+    }
+  };
+};
+
+// Pheromone Deposit System
+export const PheromoneDepositSystem =
+  (pheromoneGrid: PheromoneGrid) => (world: IWorld) => {
+    const query = defineQuery([Position, PheromoneEmitter, ForagerRole]);
+
+    return () => {
+      const entities = query(world);
+      for (const eid of entities) {
+        if (PheromoneEmitter.isEmitting[eid] && ForagerRole.state[eid] === 1) {
+          const x = Position.x[eid];
+          const y = Position.y[eid];
+          const strength = PheromoneEmitter.strength[eid];
+          pheromoneGrid.deposit(x, y, strength);
+        }
+      }
+    };
+  };
+
+// Pheromone Follow System
+export const PheromoneFollowSystem =
+  (pheromoneGrid: PheromoneGrid) => (world: IWorld) => {
+    const query = defineQuery([
+      Position,
+      Velocity,
+      PheromoneSensor,
+      ForagerRole,
+    ]);
+
+    return () => {
+      const entities = query(world);
+      for (const eid of entities) {
+        if (ForagerRole.state[eid] === 0) {
+          const x = Position.x[eid];
+          const y = Position.y[eid];
+          const radius = PheromoneSensor.radius[eid];
+          const sensitivity = PheromoneSensor.sensitivity[eid];
+
+          // Sample pheromone levels in surrounding area
+          let maxPheromone = 0;
+          let bestDirection = { x: 0, y: 0 };
+
+          for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+            const sampleX = x + Math.cos(angle) * radius;
+            const sampleY = y + Math.sin(angle) * radius;
+            const pheromoneLevel = pheromoneGrid.sample(sampleX, sampleY);
+
+            if (pheromoneLevel > maxPheromone) {
+              maxPheromone = pheromoneLevel;
+              bestDirection = { x: Math.cos(angle), y: Math.sin(angle) };
+            }
+          }
+
+          // Adjust velocity based on pheromone gradient
+          if (maxPheromone > 0) {
+            const speed = Math.sqrt(
+              Velocity.x[eid] * Velocity.x[eid] +
+                Velocity.y[eid] * Velocity.y[eid]
+            );
+            Velocity.x[eid] = bestDirection.x * speed * sensitivity;
+            Velocity.y[eid] = bestDirection.y * speed * sensitivity;
+          }
+        }
+      }
+    };
+  };
+
+// Forage Behavior System
+export const ForageBehaviorSystem = (world: IWorld) => {
+  const foragerQuery = defineQuery([Position, ForagerRole, Target]);
+  const foodQuery = defineQuery([Position, Food]);
+
+  return () => {
+    const foragers = foragerQuery(world);
+    const foods = foodQuery(world);
+
+    for (const eid of foragers) {
+      const state = ForagerRole.state[eid];
+      const x = Position.x[eid];
+      const y = Position.y[eid];
+
+      switch (state) {
+        case 0: {
+          // FindFood
+          // Find nearest food
+          let nearestFood = null;
+          let minDist = Infinity;
+          for (const foodEid of foods) {
+            const dx = Position.x[foodEid] - x;
+            const dy = Position.y[foodEid] - y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < minDist) {
+              minDist = dist;
+              nearestFood = foodEid;
+            }
+          }
+
+          if (nearestFood !== null) {
+            Target.x[eid] = Position.x[nearestFood];
+            Target.y[eid] = Position.y[nearestFood];
+            Target.type[eid] = 0; // Food target
+
+            // If close enough to food, pick it up
+            if (minDist < 10) {
+              ForagerRole.state[eid] = 1; // Switch to CarryFood
+              ForagerRole.foodCarried[eid] = 1;
+              Food.amount[nearestFood] -= 1;
+            }
+          }
+          break;
+        }
+
+        case 1: {
+          // CarryFood
+          // Set target to nest (0,0)
+          Target.x[eid] = 0;
+          Target.y[eid] = 0;
+          Target.type[eid] = 1; // Nest target
+
+          // If at nest, deposit food
+          const distToNest = Math.sqrt(x * x + y * y);
+          if (distToNest < 10) {
+            ForagerRole.state[eid] = 0; // Switch back to FindFood
+            ForagerRole.foodCarried[eid] = 0;
+            console.log("Food deposited at nest!");
+          }
+          break;
+        }
       }
     }
   };
