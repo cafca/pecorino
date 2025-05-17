@@ -74,9 +74,21 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
     // Handle new entities
     for (const eid of enter(world)) {
       try {
-        const texture = Sprite.texture[eid] === 0 ? "ant" : "food";
+        let texture;
+        switch (Sprite.texture[eid]) {
+          case 0:
+            texture = "ant";
+            break;
+          case 1:
+            texture = "food";
+            break;
+          case 2:
+            texture = "nest";
+            break;
+          default:
+            texture = "ant";
+        }
         const sprite = new PixiSprite(Assets.get(texture));
-        console.log("Created sprite:", sprite);
         sprite.anchor.set(0.5);
         sprite.scale.set(Sprite.scale[eid]);
         container.addChild(sprite);
@@ -248,7 +260,8 @@ export const ForageBehaviorSystem = (world: IWorld) => {
 
           // If at nest, deposit food
           const distToNest = Math.sqrt(x * x + y * y);
-          if (distToNest < 10) {
+          const nestRadius = 48;
+          if (distToNest < nestRadius) {
             ForagerRole.state[eid] = 0; // Switch back to FindFood
             ForagerRole.foodCarried[eid] = 0;
             console.log("Food deposited at nest!");

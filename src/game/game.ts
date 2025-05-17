@@ -60,7 +60,12 @@ export class Game {
       alias: "food",
       src: "/assets/sprites/food.png",
     });
-    const textures = await Assets.load(["ant", "food"]);
+    // Nest
+    Assets.add({
+      alias: "nest",
+      src: "/assets/sprites/nest.png",
+    });
+    const textures = await Assets.load(["ant", "food", "nest"]);
     console.log("Assets loaded", textures);
   }
 
@@ -117,16 +122,39 @@ export class Game {
     return food;
   }
 
+  private createNest() {
+    const nest = addEntity(this.world);
+
+    addComponent(this.world, Position, nest);
+    addComponent(this.world, Sprite, nest);
+
+    Position.x[nest] = 0;
+    Position.y[nest] = 0;
+    Sprite.texture[nest] = 2; // nest texture
+    Sprite.width[nest] = 64; // Make nest bigger than ants
+    Sprite.height[nest] = 64;
+    Sprite.scale[nest] = 0.2;
+
+    return nest;
+  }
+
   private initDemo() {
-    // Create 30 ants at nest (0,0)
-    for (let i = 0; i < 30; i++) {
-      this.createAnt(0, 0);
+    // Create nest at (0,0)
+    this.createNest();
+
+    // Create 30 ants in random positions around center
+    for (let i = 0; i < 1; i++) {
+      const radius = Math.random() * 300; // Random radius up to 100 pixels
+      const angle = Math.random() * Math.PI * 2; // Random angle
+      const x = Math.cos(angle) * radius; // Convert to x coordinate
+      const y = Math.sin(angle) * radius; // Convert to y coordinate
+      this.createAnt(x, y);
     }
 
     // Create 5 food items at random positions
     for (let i = 0; i < 5; i++) {
-      const x = (Math.random() - 0.5) * 200;
-      const y = (Math.random() - 0.5) * 200;
+      const x = (Math.random() - 0.5) * 800;
+      const y = (Math.random() - 0.5) * 800;
       this.createFood(x, y);
     }
   }
