@@ -19,6 +19,7 @@ export const Sprite = defineComponent({
 
 export const PlayerControlled = defineComponent({
   speed: Types.f32,
+  isPlayer: Types.ui8, // 1 for player, 0 for AI
 });
 
 // Neue Komponenten für das Pheromon-System
@@ -40,7 +41,7 @@ export const ForagerRole = defineComponent({
 export const Target = defineComponent({
   x: Types.f32,
   y: Types.f32,
-  type: Types.ui8, // 0: Food, 1: Nest
+  type: Types.ui8, // 0: Food, 1: Nest, 2: Direct
 });
 
 export const Food = defineComponent({

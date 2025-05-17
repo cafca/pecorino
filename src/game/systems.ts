@@ -32,15 +32,18 @@ export const InputSystem = (world: IWorld) => {
   return () => {
     const entities = query(world);
     for (const eid of entities) {
-      const speed = PlayerControlled.speed[eid];
+      // Only handle player-controlled ants
+      if (PlayerControlled.isPlayer[eid] === 1) {
+        const speed = PlayerControlled.speed[eid];
 
-      Velocity.x[eid] = 0;
-      Velocity.y[eid] = 0;
+        Velocity.x[eid] = 0;
+        Velocity.y[eid] = 0;
 
-      if (keys.has("w") || keys.has("arrowup")) Velocity.y[eid] = -speed;
-      if (keys.has("s") || keys.has("arrowdown")) Velocity.y[eid] = speed;
-      if (keys.has("a") || keys.has("arrowleft")) Velocity.x[eid] = -speed;
-      if (keys.has("d") || keys.has("arrowright")) Velocity.x[eid] = speed;
+        if (keys.has("w") || keys.has("arrowup")) Velocity.y[eid] = -speed;
+        if (keys.has("s") || keys.has("arrowdown")) Velocity.y[eid] = speed;
+        if (keys.has("a") || keys.has("arrowleft")) Velocity.x[eid] = -speed;
+        if (keys.has("d") || keys.has("arrowright")) Velocity.x[eid] = speed;
+      }
     }
   };
 };
@@ -205,68 +208,68 @@ export const ForageBehaviorSystem = (world: IWorld) => {
       const state = ForagerRole.state[eid];
       const x = Position.x[eid];
       const y = Position.y[eid];
+      const isPlayer = PlayerControlled.isPlayer[eid] === 1;
 
-      switch (state) {
-        case 0: {
-          // FindFood
-          // Find nearest food
-          let nearestFood = null;
-          let minDist = Infinity;
-          for (const foodEid of foods) {
-            const dx = Position.x[foodEid] - x;
-            const dy = Position.y[foodEid] - y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < minDist) {
-              minDist = dist;
-              nearestFood = foodEid;
-            }
+      // Handle food pickup for both player and AI ants
+      if (state === 0) {
+        // FindFood
+        // Find nearest food
+        let nearestFood = null;
+        let minDist = Infinity;
+        for (const foodEid of foods) {
+          const dx = Position.x[foodEid] - x;
+          const dy = Position.y[foodEid] - y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < minDist) {
+            minDist = dist;
+            nearestFood = foodEid;
           }
+        }
 
-          if (nearestFood !== null) {
+        if (nearestFood !== null) {
+          // For AI ants, set target to food
+          if (!isPlayer) {
             Target.x[eid] = Position.x[nearestFood];
             Target.y[eid] = Position.y[nearestFood];
             Target.type[eid] = 0; // Food target
-
-            // If close enough to food, pick it up
-            if (minDist < 10) {
-              ForagerRole.state[eid] = 1; // Switch to CarryFood
-              ForagerRole.foodCarried[eid] = 1;
-              Food.amount[nearestFood] -= 1;
-
-              // Remove food entity if amount reaches 0
-              if (Food.amount[nearestFood] <= 0) {
-                // Remove all components from the food entity
-                removeComponent(world, Position, nearestFood);
-                removeComponent(world, Sprite, nearestFood);
-                removeComponent(world, Food, nearestFood);
-              }
-
-              // Log remaining food
-              const remainingFood = foods.length - 1; // -1 because this food is being picked up
-              console.log(
-                `Food picked up! ${remainingFood} food items remaining.`
-              );
-            }
           }
-          break;
-        }
 
-        case 1: {
-          // CarryFood
-          // Set target to nest (0,0)
+          // If close enough to food, pick it up (for both player and AI)
+          if (minDist < 10) {
+            ForagerRole.state[eid] = 1; // Switch to CarryFood
+            ForagerRole.foodCarried[eid] = 1;
+            Food.amount[nearestFood] -= 1;
+
+            // Remove food entity if amount reaches 0
+            if (Food.amount[nearestFood] <= 0) {
+              removeComponent(world, Position, nearestFood);
+              removeComponent(world, Sprite, nearestFood);
+              removeComponent(world, Food, nearestFood);
+            }
+
+            // Log remaining food
+            const remainingFood = foods.length - 1;
+            console.log(
+              `Food picked up! ${remainingFood} food items remaining.`
+            );
+          }
+        }
+      } else if (state === 1) {
+        // CarryFood
+        // For AI ants, set target to nest
+        if (!isPlayer) {
           Target.x[eid] = 0;
           Target.y[eid] = 0;
           Target.type[eid] = 1; // Nest target
+        }
 
-          // If at nest, deposit food
-          const distToNest = Math.sqrt(x * x + y * y);
-          const nestRadius = 48;
-          if (distToNest < nestRadius) {
-            ForagerRole.state[eid] = 0; // Switch back to FindFood
-            ForagerRole.foodCarried[eid] = 0;
-            console.log("Food deposited at nest!");
-          }
-          break;
+        // If at nest, deposit food (for both player and AI)
+        const distToNest = Math.sqrt(x * x + y * y);
+        const nestRadius = 48;
+        if (distToNest < nestRadius) {
+          ForagerRole.state[eid] = 0; // Switch back to FindFood
+          ForagerRole.foodCarried[eid] = 0;
+          console.log("Food deposited at nest!");
         }
       }
     }

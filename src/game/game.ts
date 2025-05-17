@@ -69,7 +69,7 @@ export class Game {
     console.log("Assets loaded", textures);
   }
 
-  private createAnt(x: number, y: number) {
+  private createAnt(x: number, y: number, isPlayer: boolean = false) {
     const ant = addEntity(this.world);
 
     addComponent(this.world, Position, ant);
@@ -87,6 +87,7 @@ export class Game {
     Velocity.x[ant] = 0;
     Velocity.y[ant] = 0;
     PlayerControlled.speed[ant] = 100;
+    PlayerControlled.isPlayer[ant] = isPlayer ? 1 : 0;
     Sprite.texture[ant] = 0; // ant texture
     Sprite.width[ant] = 32;
     Sprite.height[ant] = 32;
@@ -142,13 +143,16 @@ export class Game {
     // Create nest at (0,0)
     this.createNest();
 
-    // Create 30 ants in random positions around center
-    for (let i = 0; i < 1; i++) {
-      const radius = Math.random() * 300; // Random radius up to 100 pixels
+    // Create player ant
+    this.createAnt(0, 32, true);
+
+    // Create AI ants in random positions around center
+    for (let i = 0; i < 30; i++) {
+      const radius = Math.random() * 300; // Random radius up to 300 pixels
       const angle = Math.random() * Math.PI * 2; // Random angle
       const x = Math.cos(angle) * radius; // Convert to x coordinate
       const y = Math.sin(angle) * radius; // Convert to y coordinate
-      this.createAnt(x, y);
+      this.createAnt(x, y, false);
     }
 
     // Create 5 food items at random positions
