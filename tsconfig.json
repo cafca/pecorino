@@ -19,11 +19,17 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "types": ["vite/client", "DOM"]
+
+    /* Type Checking */
+    "types": ["vite/client"],
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
-  "include": ["src"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

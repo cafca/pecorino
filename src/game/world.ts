@@ -20,7 +20,8 @@ export class World {
     this.app.ticker.remove(this.update.bind(this));
   }
 
-  private update(delta: number): void {
+  private update(ticker: PIXI.Ticker): void {
+    const delta = ticker.deltaMS / 1000;
     for (const system of this.systems) {
       system(delta);
     }
