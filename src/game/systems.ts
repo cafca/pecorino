@@ -76,6 +76,7 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
       try {
         const texture = Sprite.texture[eid] === 0 ? "ant" : "food";
         const sprite = new PixiSprite(Assets.get(texture));
+        console.log("Created sprite:", sprite);
         sprite.anchor.set(0.5);
         sprite.scale.set(Sprite.scale[eid]);
         container.addChild(sprite);
@@ -85,13 +86,19 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
       }
     }
 
-    // Update positions
+    // Update positions and tints
     const entities = query(world);
     for (const eid of entities) {
       const sprite = sprites.get(eid);
       if (sprite) {
         sprite.x = Position.x[eid];
         sprite.y = Position.y[eid];
+
+        if (Sprite.texture[eid] === 0 && ForagerRole.foodCarried[eid] === 1) {
+          sprite.tint = 0xff0000; // red
+        } else {
+          sprite.tint = 0xffffff; // white (normal)
+        }
       }
     }
 
