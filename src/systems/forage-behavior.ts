@@ -65,6 +65,12 @@ const moveTowardsTarget = (
   }
 };
 
+// Track exploration targets and their timestamps
+const explorationTargets = new Map<
+  number,
+  { timestamp: number; targetX: number; targetY: number }
+>();
+
 const handleFindFoodState = (
   ant: number,
   x: number,
@@ -75,12 +81,14 @@ const handleFindFoodState = (
 ) => {
   const { nearestFood, minDist } = findNearestFood(x, y, foods);
 
-  if (nearestFood !== null) {
+  // Only set target to food if we're very close to it
+  if (nearestFood !== null && minDist < 50) {
     // For AI ants, set target to food
     if (!isPlayer) {
       Target.x[ant] = Position.x[nearestFood];
       Target.y[ant] = Position.y[nearestFood];
       Target.type[ant] = 0; // Food target
+      explorationTargets.delete(ant); // Clear exploration target when food is found
     }
 
     // If close enough to food, pick it up
@@ -88,6 +96,37 @@ const handleFindFoodState = (
       pickupFood(ant, nearestFood, world);
       const remainingFood = foods.length - 1;
       console.log(`Food picked up! ${remainingFood} food items remaining.`);
+    }
+  } else if (!isPlayer) {
+    const currentTime = Date.now();
+    const currentTarget = explorationTargets.get(ant);
+    const targetX = Target.x[ant];
+    const targetY = Target.y[ant];
+
+    // Check if we need a new exploration target
+    const needsNewTarget =
+      !currentTarget ||
+      currentTime - currentTarget.timestamp > 5000 || // Target expires after 5 seconds
+      Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2)) < 20; // Target reached
+
+    if (needsNewTarget) {
+      // If no food nearby, explore randomly
+      const exploreRadius = 200;
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * exploreRadius;
+      const newTargetX = x + Math.cos(angle) * distance;
+      const newTargetY = y + Math.sin(angle) * distance;
+
+      Target.x[ant] = newTargetX;
+      Target.y[ant] = newTargetY;
+      Target.type[ant] = 2; // Exploration target
+
+      // Store the new target and its timestamp
+      explorationTargets.set(ant, {
+        timestamp: currentTime,
+        targetX: newTargetX,
+        targetY: newTargetY,
+      });
     }
   }
 };
@@ -103,6 +142,7 @@ const handleCarryFoodState = (
     Target.x[ant] = 0;
     Target.y[ant] = 0;
     Target.type[ant] = 1; // Nest target
+    explorationTargets.delete(ant); // Clear exploration target when returning to nest
   }
 
   // If at nest, deposit food
