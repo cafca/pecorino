@@ -45,7 +45,7 @@ export class Game {
     Sprite.texture[player] = 0;
     Sprite.width[player] = 32;
     Sprite.height[player] = 32;
-    Sprite.scale[player] = 1;
+    Sprite.scale[player] = 0.1;
     PlayerControlled.speed[player] = 200;
 
     console.log("Player entity initialized:", {

@@ -83,6 +83,9 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
   const container = new Container();
   app.stage.addChild(container);
 
+  // Zentriere den Container initial
+  container.position.set(app.screen.width / 2, app.screen.height / 2);
+
   return () => {
     // Handle new entities
     for (const eid of enter(world)) {
@@ -120,26 +123,6 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
         sprite.destroy();
         sprites.delete(eid);
       }
-    }
-
-    // Update camera position to follow player
-    const playerQuery = defineQuery([Position, PlayerControlled]);
-    const players = playerQuery(world);
-    if (players.length > 0) {
-      const playerEid = players[0];
-      const playerX = Position.x[playerEid];
-      const playerY = Position.y[playerEid];
-
-      // Setze die Kamera auf die Spielerposition
-      container.position.set(
-        app.screen.width / 2 - playerX,
-        app.screen.height / 2 - playerY
-      );
-
-      console.log("Camera position updated:", {
-        playerPosition: { x: playerX, y: playerY },
-        cameraPosition: { x: container.position.x, y: container.position.y },
-      });
     }
   };
 };
