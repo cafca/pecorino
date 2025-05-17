@@ -84,5 +84,39 @@ test.describe("game", () => {
       });
       expect(finalSpeed).toBe(initialSpeed);
     });
+
+    test("clicking the game container creates food", async ({ page }) => {
+      // Get initial food count and set spawn rate to 0
+      const initialFoodCount = await page.evaluate(() => {
+        // @ts-expect-error window.game is not typed
+        // eslint-disable-next-line no-undef
+        const game: Game = window.game;
+        game.setSpawnRate(0);
+        return game.getHUDState().foodCount;
+      });
+
+      expect(initialFoodCount).toBe(0);
+
+      // Click in the center of the game container
+      const container = page.locator("#game-container").first();
+      const box = await container.boundingBox();
+      if (!box) throw new Error("Could not get container bounds");
+
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+
+      // Wait a bit for the food to be created
+      await page.waitForTimeout(10);
+
+      // Get new food count
+      const newFoodCount = await page.evaluate(() => {
+        // @ts-expect-error window.game is not typed
+        // eslint-disable-next-line no-undef
+        const game: Game = window.game;
+        return game.getHUDState().foodCount;
+      });
+
+      // Food count should have increased
+      expect(newFoodCount).toBeGreaterThan(initialFoodCount);
+    });
   });
 });

@@ -120,7 +120,7 @@ export class Game {
     return ant;
   }
 
-  private createFood(x: number, y: number) {
+  public createFood(x: number, y: number) {
     const food = addEntity(this.world);
 
     addComponent(this.world, Position, food);
@@ -291,8 +291,25 @@ export class Game {
   }
 
   private spawnRandomFood() {
-    const x = (Math.random() - 0.5) * 800;
-    const y = (Math.random() - 0.5) * 800;
+    // Create food clusters around specific locations
+    const clusterCenters = [
+      { x: 200, y: 200 },
+      { x: -200, y: 200 },
+      { x: 200, y: -200 },
+      { x: -200, y: -200 },
+    ];
+
+    // Pick a random cluster center
+    const center =
+      clusterCenters[Math.floor(Math.random() * clusterCenters.length)];
+
+    // Spawn food within a radius of the center
+    const radius = 100;
+    const angle = Math.random() * Math.PI * 2;
+    const distance = Math.random() * radius;
+    const x = center.x + Math.cos(angle) * distance;
+    const y = center.y + Math.sin(angle) * distance;
+
     this.createFood(x, y);
   }
 }
