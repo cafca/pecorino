@@ -74,7 +74,8 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
     // Handle new entities
     for (const eid of enter(world)) {
       try {
-        const sprite = new PixiSprite(Assets.get("ant"));
+        const texture = Sprite.texture[eid] === 0 ? "ant" : "food";
+        const sprite = new PixiSprite(Assets.get(texture));
         sprite.anchor.set(0.5);
         sprite.scale.set(Sprite.scale[eid]);
         container.addChild(sprite);
@@ -91,10 +92,6 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
       if (sprite) {
         sprite.x = Position.x[eid];
         sprite.y = Position.y[eid];
-        console.log("Sprite position updated:", {
-          entity: eid,
-          position: { x: sprite.x, y: sprite.y },
-        });
       }
     }
 

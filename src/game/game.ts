@@ -55,7 +55,12 @@ export class Game {
       alias: "ant",
       src: "/assets/sprites/ant.png",
     });
-    const textures = await Assets.load(["ant"]);
+    // Food
+    Assets.add({
+      alias: "food",
+      src: "/assets/sprites/food.png",
+    });
+    const textures = await Assets.load(["ant", "food"]);
     console.log("Assets loaded", textures);
   }
 
@@ -65,6 +70,7 @@ export class Game {
     addComponent(this.world, Position, ant);
     addComponent(this.world, Velocity, ant);
     addComponent(this.world, Sprite, ant);
+    addComponent(this.world, PlayerControlled, ant);
     addComponent(this.world, PheromoneEmitter, ant);
     addComponent(this.world, PheromoneSensor, ant);
     addComponent(this.world, ForagerRole, ant);
@@ -75,7 +81,8 @@ export class Game {
     Position.y[ant] = y;
     Velocity.x[ant] = 0;
     Velocity.y[ant] = 0;
-    Sprite.texture[ant] = 0;
+    PlayerControlled.speed[ant] = 100;
+    Sprite.texture[ant] = 0; // ant texture
     Sprite.width[ant] = 32;
     Sprite.height[ant] = 32;
     Sprite.scale[ant] = 0.1;
@@ -101,7 +108,7 @@ export class Game {
 
     Position.x[food] = x;
     Position.y[food] = y;
-    Sprite.texture[food] = 0;
+    Sprite.texture[food] = 1; // food texture
     Sprite.width[food] = 32;
     Sprite.height[food] = 32;
     Sprite.scale[food] = 0.1;
