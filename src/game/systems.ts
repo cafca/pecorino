@@ -195,6 +195,113 @@ export const PheromoneFollowSystem =
     };
   };
 
+// Helper functions for ForageBehaviorSystem
+const findNearestFood = (
+  x: number,
+  y: number,
+  foods: number[],
+  world: IWorld
+) => {
+  let nearestFood = null;
+  let minDist = Infinity;
+
+  for (const foodEid of foods) {
+    const dx = Position.x[foodEid] - x;
+    const dy = Position.y[foodEid] - y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < minDist) {
+      minDist = dist;
+      nearestFood = foodEid;
+    }
+  }
+
+  return { nearestFood, minDist };
+};
+
+const pickupFood = (ant: number, food: number, world: IWorld) => {
+  ForagerRole.state[ant] = 1; // Switch to CarryFood
+  ForagerRole.foodCarried[ant] = 1;
+  Food.amount[food] -= 1;
+
+  // Remove food entity if amount reaches 0
+  if (Food.amount[food] <= 0) {
+    removeComponent(world, Position, food);
+    removeComponent(world, Sprite, food);
+    removeComponent(world, Food, food);
+  }
+};
+
+const moveTowardsTarget = (
+  ant: number,
+  targetX: number,
+  targetY: number,
+  speed: number
+) => {
+  const x = Position.x[ant];
+  const y = Position.y[ant];
+  const dx = targetX - x;
+  const dy = targetY - y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  if (dist > 0) {
+    Velocity.x[ant] = (dx / dist) * speed;
+    Velocity.y[ant] = (dy / dist) * speed;
+  } else {
+    Velocity.x[ant] = 0;
+    Velocity.y[ant] = 0;
+  }
+};
+
+const handleFindFoodState = (
+  ant: number,
+  x: number,
+  y: number,
+  isPlayer: boolean,
+  foods: number[],
+  world: IWorld
+) => {
+  const { nearestFood, minDist } = findNearestFood(x, y, foods, world);
+
+  if (nearestFood !== null) {
+    // For AI ants, set target to food
+    if (!isPlayer) {
+      Target.x[ant] = Position.x[nearestFood];
+      Target.y[ant] = Position.y[nearestFood];
+      Target.type[ant] = 0; // Food target
+    }
+
+    // If close enough to food, pick it up
+    if (minDist < 10) {
+      pickupFood(ant, nearestFood, world);
+      const remainingFood = foods.length - 1;
+      console.log(`Food picked up! ${remainingFood} food items remaining.`);
+    }
+  }
+};
+
+const handleCarryFoodState = (
+  ant: number,
+  x: number,
+  y: number,
+  isPlayer: boolean
+) => {
+  // For AI ants, set target to nest
+  if (!isPlayer) {
+    Target.x[ant] = 0;
+    Target.y[ant] = 0;
+    Target.type[ant] = 1; // Nest target
+  }
+
+  // If at nest, deposit food
+  const distToNest = Math.sqrt(x * x + y * y);
+  const nestRadius = 48;
+  if (distToNest < nestRadius) {
+    ForagerRole.state[ant] = 0; // Switch back to FindFood
+    ForagerRole.foodCarried[ant] = 0;
+    console.log("Food deposited at nest!");
+  }
+};
+
 // Forage Behavior System
 export const ForageBehaviorSystem = (world: IWorld) => {
   const foragerQuery = defineQuery([Position, ForagerRole, Target, Velocity]);
@@ -211,86 +318,16 @@ export const ForageBehaviorSystem = (world: IWorld) => {
       const isPlayer = PlayerControlled.isPlayer[eid] === 1;
       const isCarryingFood = ForagerRole.foodCarried[eid] === 1;
 
-      // Skip movement for player-controlled ants
+      // Handle AI movement
       if (!isPlayer) {
-        // Move towards target
-        const targetX = Target.x[eid];
-        const targetY = Target.y[eid];
-        const dx = targetX - x;
-        const dy = targetY - y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist > 0) {
-          const speed = 100; // Base speed
-          Velocity.x[eid] = (dx / dist) * speed;
-          Velocity.y[eid] = (dy / dist) * speed;
-        } else {
-          Velocity.x[eid] = 0;
-          Velocity.y[eid] = 0;
-        }
+        moveTowardsTarget(eid, Target.x[eid], Target.y[eid], 100);
       }
 
-      // Handle food pickup for both player and AI ants
+      // Handle state-specific behavior
       if (state === 0) {
-        // FindFood
-        // Find nearest food
-        let nearestFood = null;
-        let minDist = Infinity;
-        for (const foodEid of foods) {
-          const dx = Position.x[foodEid] - x;
-          const dy = Position.y[foodEid] - y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < minDist) {
-            minDist = dist;
-            nearestFood = foodEid;
-          }
-        }
-
-        if (nearestFood !== null) {
-          // For AI ants, set target to food
-          if (!isPlayer) {
-            Target.x[eid] = Position.x[nearestFood];
-            Target.y[eid] = Position.y[nearestFood];
-            Target.type[eid] = 0; // Food target
-          }
-
-          // If close enough to food, pick it up (for both player and AI)
-          if (minDist < 10) {
-            ForagerRole.state[eid] = 1; // Switch to CarryFood
-            ForagerRole.foodCarried[eid] = 1;
-            Food.amount[nearestFood] -= 1;
-
-            // Remove food entity if amount reaches 0
-            if (Food.amount[nearestFood] <= 0) {
-              removeComponent(world, Position, nearestFood);
-              removeComponent(world, Sprite, nearestFood);
-              removeComponent(world, Food, nearestFood);
-            }
-
-            // Log remaining food
-            const remainingFood = foods.length - 1;
-            console.log(
-              `Food picked up! ${remainingFood} food items remaining.`
-            );
-          }
-        }
+        handleFindFoodState(eid, x, y, isPlayer, foods, world);
       } else if (state === 1 && isCarryingFood) {
-        // CarryFood
-        // For AI ants, set target to nest
-        if (!isPlayer) {
-          Target.x[eid] = 0;
-          Target.y[eid] = 0;
-          Target.type[eid] = 1; // Nest target
-        }
-
-        // If at nest, deposit food (for both player and AI)
-        const distToNest = Math.sqrt(x * x + y * y);
-        const nestRadius = 48;
-        if (distToNest < nestRadius) {
-          ForagerRole.state[eid] = 0; // Switch back to FindFood
-          ForagerRole.foodCarried[eid] = 0;
-          console.log("Food deposited at nest!");
-        }
+        handleCarryFoodState(eid, x, y, isPlayer);
       }
     }
   };
