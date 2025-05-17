@@ -36,6 +36,8 @@ export class Game {
   private antQuery = defineQuery([Position, ForagerRole]);
   private foodQuery = defineQuery([Position, Food]);
   private simulationSpeed = 1;
+  private spawnTimer = 0;
+  private spawnRate = 5; // seconds between spawns
 
   // HUD state
   private colonyFood = 0;
@@ -187,6 +189,13 @@ export class Game {
       this.pheromoneGrid.update(adjustedDelta);
       this.renderSystem();
 
+      // Handle food spawning
+      this.spawnTimer += adjustedDelta;
+      if (this.spawnTimer >= this.spawnRate) {
+        this.spawnTimer = 0;
+        this.spawnRandomFood();
+      }
+
       // Update HUD state
       this.updateHUDState();
     });
@@ -258,10 +267,21 @@ export class Game {
       foodCount: this.colonyFood,
       antCount: this.antCount,
       simulationSpeed: this.simulationSpeed,
+      spawnRate: this.spawnRate,
     };
   }
 
   public toggleSimulationSpeed() {
     this.simulationSpeed = this.simulationSpeed === 1 ? 4 : 1;
+  }
+
+  public setSpawnRate(rate: number) {
+    this.spawnRate = Math.max(0.5, Math.min(10, rate));
+  }
+
+  private spawnRandomFood() {
+    const x = (Math.random() - 0.5) * 800;
+    const y = (Math.random() - 0.5) * 800;
+    this.createFood(x, y);
   }
 }

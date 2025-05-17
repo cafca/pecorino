@@ -8,6 +8,7 @@ export const App: React.FC = () => {
     foodCount: 0,
     antCount: 0,
     simulationSpeed: 1,
+    spawnRate: 5,
   });
 
   useEffect(() => {
@@ -33,6 +34,13 @@ export const App: React.FC = () => {
   const handleSpeedToggle = () => {
     if (game) {
       game.toggleSimulationSpeed();
+      setHudState(game.getHUDState());
+    }
+  };
+
+  const handleSpawnRateChange = (rate: number) => {
+    if (game) {
+      game.setSpawnRate(rate);
       setHudState(game.getHUDState());
     }
   };
@@ -72,7 +80,9 @@ export const App: React.FC = () => {
           foodCount={hudState.foodCount}
           antCount={hudState.antCount}
           simulationSpeed={hudState.simulationSpeed}
+          spawnRate={hudState.spawnRate}
           onSpeedToggle={handleSpeedToggle}
+          onSpawnRateChange={handleSpawnRateChange}
         />
       </div>
     </div>
