@@ -1,4 +1,4 @@
-import { defineQuery, enterQuery, exitQuery } from "bitecs";
+import { defineQuery, enterQuery, exitQuery, removeComponent } from "bitecs";
 import type { IWorld } from "bitecs";
 import { Application, Container, Sprite as PixiSprite, Assets } from "pixi.js";
 import {
@@ -220,6 +220,20 @@ export const ForageBehaviorSystem = (world: IWorld) => {
               ForagerRole.state[eid] = 1; // Switch to CarryFood
               ForagerRole.foodCarried[eid] = 1;
               Food.amount[nearestFood] -= 1;
+
+              // Remove food entity if amount reaches 0
+              if (Food.amount[nearestFood] <= 0) {
+                // Remove all components from the food entity
+                removeComponent(world, Position, nearestFood);
+                removeComponent(world, Sprite, nearestFood);
+                removeComponent(world, Food, nearestFood);
+              }
+
+              // Log remaining food
+              const remainingFood = foods.length - 1; // -1 because this food is being picked up
+              console.log(
+                `Food picked up! ${remainingFood} food items remaining.`
+              );
             }
           }
           break;
