@@ -197,7 +197,7 @@ export const PheromoneFollowSystem =
 
 // Forage Behavior System
 export const ForageBehaviorSystem = (world: IWorld) => {
-  const foragerQuery = defineQuery([Position, ForagerRole, Target]);
+  const foragerQuery = defineQuery([Position, ForagerRole, Target, Velocity]);
   const foodQuery = defineQuery([Position, Food]);
 
   return () => {
@@ -210,6 +210,25 @@ export const ForageBehaviorSystem = (world: IWorld) => {
       const y = Position.y[eid];
       const isPlayer = PlayerControlled.isPlayer[eid] === 1;
       const isCarryingFood = ForagerRole.foodCarried[eid] === 1;
+
+      // Skip movement for player-controlled ants
+      if (!isPlayer) {
+        // Move towards target
+        const targetX = Target.x[eid];
+        const targetY = Target.y[eid];
+        const dx = targetX - x;
+        const dy = targetY - y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > 0) {
+          const speed = 100; // Base speed
+          Velocity.x[eid] = (dx / dist) * speed;
+          Velocity.y[eid] = (dy / dist) * speed;
+        } else {
+          Velocity.x[eid] = 0;
+          Velocity.y[eid] = 0;
+        }
+      }
 
       // Handle food pickup for both player and AI ants
       if (state === 0) {
