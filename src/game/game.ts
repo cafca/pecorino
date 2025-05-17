@@ -1,4 +1,4 @@
-import { createWorld, addComponent, addEntity } from "bitecs";
+import { createWorld, addComponent, addEntity, defineQuery } from "bitecs";
 import { Application, Assets } from "pixi.js";
 import { Position, Velocity, Sprite, PlayerControlled } from "./components";
 import { InputSystem, MovementSystem, RenderSystem } from "./systems";
@@ -10,6 +10,7 @@ export class Game {
   private inputSystem: () => void;
   private movementSystem: (delta: number) => void;
   private renderSystem: () => void;
+  private playerQuery = defineQuery([Position, PlayerControlled]);
 
   private constructor(app: Application) {
     this.app = app;
@@ -98,5 +99,27 @@ export class Game {
     game.initResizeHandler();
 
     return game;
+  }
+
+  public getPlayerPosition(): { x: number; y: number } {
+    const players = this.playerQuery(this.world);
+    if (players.length === 0) {
+      return { x: 0, y: 0 };
+    }
+    const player = players[0];
+    return {
+      x: Position.x[player],
+      y: Position.y[player],
+    };
+  }
+
+  public getEntityPosition(entityId: number): { x: number; y: number } | null {
+    if (!Position.x[entityId] || !Position.y[entityId]) {
+      return null;
+    }
+    return {
+      x: Position.x[entityId],
+      y: Position.y[entityId],
+    };
   }
 }
