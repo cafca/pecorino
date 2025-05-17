@@ -209,6 +209,7 @@ export const ForageBehaviorSystem = (world: IWorld) => {
       const x = Position.x[eid];
       const y = Position.y[eid];
       const isPlayer = PlayerControlled.isPlayer[eid] === 1;
+      const isCarryingFood = ForagerRole.foodCarried[eid] === 1;
 
       // Handle food pickup for both player and AI ants
       if (state === 0) {
@@ -254,7 +255,7 @@ export const ForageBehaviorSystem = (world: IWorld) => {
             );
           }
         }
-      } else if (state === 1) {
+      } else if (state === 1 && isCarryingFood) {
         // CarryFood
         // For AI ants, set target to nest
         if (!isPlayer) {
