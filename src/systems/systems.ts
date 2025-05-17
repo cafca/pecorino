@@ -89,9 +89,23 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
     // Handle new entities
     const newEntities = enter(world);
     for (const eid of newEntities) {
-      const sprite = new PixiSprite(Assets.get("ant"));
+      let texture;
+      switch (Sprite.texture[eid]) {
+        case 0:
+          texture = "ant";
+          break;
+        case 1:
+          texture = "food";
+          break;
+        case 2:
+          texture = "nest";
+          break;
+        default:
+          texture = "ant";
+      }
+      const sprite = new PixiSprite(Assets.get(texture));
       sprite.anchor.set(0.5);
-      sprite.scale.set(0.1);
+      sprite.scale.set(Sprite.scale[eid]);
       container.addChild(sprite);
       sprites.set(eid, sprite);
     }
@@ -145,11 +159,9 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
             const color = 0x00ff00 + Math.floor(alpha * 0x0000ff); // Green to blue gradient
 
             // Draw a small circle for each pheromone point
-            pheromoneGraphics.fill({
-              color,
-              alpha: alpha * 0.5,
-            });
-            pheromoneGraphics.circle(worldX, worldY, 0.2);
+            pheromoneGraphics.beginFill(color, alpha * 0.5);
+            pheromoneGraphics.drawCircle(worldX, worldY, 0.2);
+            pheromoneGraphics.endFill();
           }
         }
       }
