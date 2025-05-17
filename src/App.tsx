@@ -74,6 +74,15 @@ export const App: React.FC = () => {
           width: "100%",
           height: "100%",
           zIndex: 1,
+          cursor: "pointer",
+        }}
+        onClick={(e) => {
+          if (game) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left - window.innerWidth / 2;
+            const y = e.clientY - rect.top - window.innerHeight / 2;
+            game.createFood(x, y);
+          }
         }}
       />
       <div
