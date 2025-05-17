@@ -76,6 +76,18 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
   app.stage.addChild(container);
   app.stage.addChild(pheromoneContainer);
 
+  // Add sand-colored background
+  const background = new Graphics();
+  background.beginFill(0xeeda94); // Sand color
+  background.drawRect(
+    -app.screen.width / 2,
+    -app.screen.height / 2,
+    app.screen.width,
+    app.screen.height
+  );
+  background.endFill();
+  container.addChild(background);
+
   // Center the containers initially
   container.position.set(app.screen.width / 2, app.screen.height / 2);
   pheromoneContainer.position.set(app.screen.width / 2, app.screen.height / 2);
