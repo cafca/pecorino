@@ -33,6 +33,13 @@ export class Game {
   private forageBehaviorSystem: () => void;
   private pheromoneGrid: PheromoneGrid;
   private playerQuery = defineQuery([Position, PlayerControlled]);
+  private antQuery = defineQuery([Position, ForagerRole]);
+  private foodQuery = defineQuery([Position, Food]);
+  private simulationSpeed = 1;
+
+  // HUD state
+  private colonyFood = 0;
+  private antCount = 0;
 
   private constructor(app: Application) {
     this.app = app;
@@ -169,13 +176,19 @@ export class Game {
       const delta = (currentTime - this.lastTime) / 1000;
       this.lastTime = currentTime;
 
+      // Apply simulation speed
+      const adjustedDelta = delta * this.simulationSpeed;
+
       this.inputSystem();
-      this.movementSystem(delta);
+      this.movementSystem(adjustedDelta);
       this.pheromoneDepositSystem();
       this.pheromoneFollowSystem();
       this.forageBehaviorSystem();
-      this.pheromoneGrid.update(delta);
+      this.pheromoneGrid.update(adjustedDelta);
       this.renderSystem();
+
+      // Update HUD state
+      this.updateHUDState();
     });
   }
 
@@ -195,7 +208,9 @@ export class Game {
       resolution: window.devicePixelRatio || 1,
       autoDensity: true,
     });
-    document.body.appendChild(app.canvas);
+    const gameContainer = document.getElementById("game-container");
+    if (!gameContainer) throw new Error("Game container not found");
+    gameContainer.appendChild(app.canvas);
 
     const game = new Game(app);
     await game.loadAssets();
@@ -226,5 +241,27 @@ export class Game {
       x: Position.x[entityId],
       y: Position.y[entityId],
     };
+  }
+
+  private updateHUDState() {
+    // Count ants
+    this.antCount = this.antQuery(this.world).length;
+
+    // Count food in colony (food carried by ants)
+    this.colonyFood = this.antQuery(this.world).reduce((total, ant) => {
+      return total + (ForagerRole.foodCarried[ant] === 1 ? 1 : 0);
+    }, 0);
+  }
+
+  public getHUDState() {
+    return {
+      foodCount: this.colonyFood,
+      antCount: this.antCount,
+      simulationSpeed: this.simulationSpeed,
+    };
+  }
+
+  public toggleSimulationSpeed() {
+    this.simulationSpeed = this.simulationSpeed === 1 ? 4 : 1;
   }
 }
