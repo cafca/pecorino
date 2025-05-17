@@ -14,7 +14,7 @@ import {
   PheromoneDepositSystem,
   PheromoneFollowSystem,
   ForageBehaviorSystem,
-} from "../game/systems";
+} from "../systems/systems";
 
 describe("PheromoneGrid", () => {
   let grid: PheromoneGrid;

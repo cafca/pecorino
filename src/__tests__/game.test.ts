@@ -10,7 +10,7 @@ import {
   Food,
 } from "../game/components";
 import { createWorld, addComponent, addEntity } from "bitecs";
-import { MovementSystem } from "../game/systems";
+import { MovementSystem } from "../systems/systems";
 
 describe("Game Components", () => {
   describe("Position", () => {

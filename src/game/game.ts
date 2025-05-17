@@ -18,7 +18,7 @@ import {
   PheromoneDepositSystem,
   PheromoneFollowSystem,
   ForageBehaviorSystem,
-} from "./systems";
+} from "../systems/systems";
 import { PheromoneGrid } from "./pheromoneGrid";
 
 export class Game {
