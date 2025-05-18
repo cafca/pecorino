@@ -126,7 +126,7 @@ export class Game {
     Sprite.texture[ant] = 0; // ant texture
     Sprite.width[ant] = 32;
     Sprite.height[ant] = 32;
-    Sprite.scale[ant] = 0.1;
+    Sprite.scale[ant] = 0.025; // 25% of previous 0.1 scale
     ForagerRole.state[ant] = 0;
     ForagerRole.foodCarried[ant] = 0;
     Target.x[ant] = 0;
@@ -154,7 +154,7 @@ export class Game {
     Sprite.texture[food] = 1; // food texture
     Sprite.width[food] = 32;
     Sprite.height[food] = 32;
-    Sprite.scale[food] = 0.1;
+    Sprite.scale[food] = 0.025; // 25% of previous 0.1 scale
     Food.amount[food] = 1;
 
     return food;
@@ -172,7 +172,7 @@ export class Game {
     Sprite.texture[nest] = 2; // nest texture
     Sprite.width[nest] = 64; // Make nest bigger than ants
     Sprite.height[nest] = 64;
-    Sprite.scale[nest] = 0.2;
+    Sprite.scale[nest] = 0.05; // 25% of previous 0.2 scale
     Nest.foodCount[nest] = 0;
 
     return nest;
@@ -187,7 +187,7 @@ export class Game {
 
     // Create 4 AI ants in random positions around center
     for (let i = 0; i < 4; i++) {
-      const radius = Math.random() * 300; // Random radius up to 300 pixels
+      const radius = Math.random() * 75; // Random radius up to 75 pixels (25% of previous 300)
       const angle = Math.random() * Math.PI * 2; // Random angle
       const x = Math.cos(angle) * radius; // Convert to x coordinate
       const y = Math.sin(angle) * radius; // Convert to y coordinate
@@ -364,10 +364,10 @@ export class Game {
   private spawnRandomFood() {
     // Create food clusters around specific locations
     const clusterCenters = [
-      { x: 200, y: 200 },
-      { x: -200, y: 200 },
-      { x: 200, y: -200 },
-      { x: -200, y: -200 },
+      { x: 100, y: 100 },
+      { x: -100, y: 100 },
+      { x: 100, y: -100 },
+      { x: -100, y: -100 },
     ];
 
     // Pick a random cluster center
@@ -375,7 +375,7 @@ export class Game {
       clusterCenters[Math.floor(Math.random() * clusterCenters.length)];
 
     // Spawn food within a radius of the center
-    const radius = 100;
+    const radius = 25; // 25% of previous 100
     const angle = Math.random() * Math.PI * 2;
     const distance = Math.random() * radius;
     const x = center.x + Math.cos(angle) * distance;
