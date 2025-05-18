@@ -4,26 +4,6 @@ A real-time ant colony simulation game where you control an ant and interact wit
 
 ## Features
 
-### Ant Movement
-
-- **Player Control**: Control your ant using either:
-  - Arrow keys (↑, ↓, ←, →)
-  - WASD keys
-- **Movement Mechanics**:
-  - Smooth movement in all directions
-  - Diagonal movement when pressing multiple keys
-  - Momentum-based movement system
-  - Automatic stopping when no keys are pressed
-
-### Ant Colony
-
-- **Player Ant**: A special ant that you can control directly
-- **AI Ants**: Multiple AI-controlled ants that:
-  - Follow pheromone trails
-  - Search for food
-  - Return to the nest
-  - Interact with the environment
-
 ### Pheromone System
 
 - **Trail Creation**: Ants leave pheromone trails as they move
@@ -46,14 +26,6 @@ A real-time ant colony simulation game where you control an ant and interact wit
   - Number of ants
   - Simulation speed
   - Food spawn rate
-
-### Technical Features
-
-- Built with React and TypeScript
-- Uses PixiJS for rendering
-- ECS (Entity Component System) architecture
-- Real-time physics simulation
-- Responsive design that adapts to window size
 
 ## Development
 
