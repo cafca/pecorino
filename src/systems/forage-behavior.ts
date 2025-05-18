@@ -159,50 +159,53 @@ const handleFindFoodState = (
   }
 
   // Only look for new exploration target if we're not already close to food
-  const explorationCurrentTime = Date.now();
-  const currentTarget = explorationTargets.get(ant);
-  const targetX = Target.x[ant];
-  const targetY = Target.y[ant];
+  // and not in PICKING_UP_FOOD state
+  if (AntState.currentState[ant] !== AntStateType.PICKING_UP_FOOD) {
+    const explorationCurrentTime = Date.now();
+    const currentTarget = explorationTargets.get(ant);
+    const targetX = Target.x[ant];
+    const targetY = Target.y[ant];
 
-  // Check if we need a new exploration target
-  const needsNewTarget =
-    !currentTarget ||
-    explorationCurrentTime - currentTarget.timestamp >
-      EXPLORATION_TARGET_TIMEOUT || // Target expires after timeout
-    Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2)) <
-      EXPLORATION_TARGET_REACHED_DISTANCE;
+    // Check if we need a new exploration target
+    const needsNewTarget =
+      !currentTarget ||
+      explorationCurrentTime - currentTarget.timestamp >
+        EXPLORATION_TARGET_TIMEOUT || // Target expires after timeout
+      Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2)) <
+        EXPLORATION_TARGET_REACHED_DISTANCE;
 
-  if (needsNewTarget) {
-    // If no food nearby, explore randomly within map bounds
-    const angle = Math.random() * Math.PI * 2;
-    const distance = Math.random() * EXPLORATION_RADIUS;
+    if (needsNewTarget) {
+      // If no food nearby, explore randomly within map bounds
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * EXPLORATION_RADIUS;
 
-    // Calculate new target position
-    let newTargetX = x + Math.cos(angle) * distance;
-    let newTargetY = y + Math.sin(angle) * distance;
+      // Calculate new target position
+      let newTargetX = x + Math.cos(angle) * distance;
+      let newTargetY = y + Math.sin(angle) * distance;
 
-    // Get map bounds from pheromone grid
-    const grid = (window as { game?: { pheromoneGrid: PheromoneGrid } }).game
-      ?.pheromoneGrid;
-    if (grid) {
-      const halfWidth = grid.getGridWidth() / (2 * grid.getResolution());
-      const halfHeight = grid.getGridHeight() / (2 * grid.getResolution());
+      // Get map bounds from pheromone grid
+      const grid = (window as { game?: { pheromoneGrid: PheromoneGrid } }).game
+        ?.pheromoneGrid;
+      if (grid) {
+        const halfWidth = grid.getGridWidth() / (2 * grid.getResolution());
+        const halfHeight = grid.getGridHeight() / (2 * grid.getResolution());
 
-      // Clamp target position to map bounds
-      newTargetX = Math.max(-halfWidth, Math.min(halfWidth, newTargetX));
-      newTargetY = Math.max(-halfHeight, Math.min(halfHeight, newTargetY));
+        // Clamp target position to map bounds
+        newTargetX = Math.max(-halfWidth, Math.min(halfWidth, newTargetX));
+        newTargetY = Math.max(-halfHeight, Math.min(halfHeight, newTargetY));
+      }
+
+      Target.x[ant] = newTargetX;
+      Target.y[ant] = newTargetY;
+      Target.type[ant] = 2; // Exploration target
+
+      // Store the new target and its timestamp
+      explorationTargets.set(ant, {
+        timestamp: explorationCurrentTime,
+        targetX: newTargetX,
+        targetY: newTargetY,
+      });
     }
-
-    Target.x[ant] = newTargetX;
-    Target.y[ant] = newTargetY;
-    Target.type[ant] = 2; // Exploration target
-
-    // Store the new target and its timestamp
-    explorationTargets.set(ant, {
-      timestamp: explorationCurrentTime,
-      targetX: newTargetX,
-      targetY: newTargetY,
-    });
   }
 };
 
