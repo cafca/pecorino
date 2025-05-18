@@ -205,7 +205,8 @@ describe("Pheromone Systems", () => {
       grid,
       (info: PheromoneFollowDebugInfo) => {
         if (info.eid === ant) debugInfo = info;
-      }
+      },
+      false
     )(world);
     followSystem();
 
@@ -262,7 +263,8 @@ describe("Pheromone Systems", () => {
       (info: PheromoneFollowDebugInfo) => {
         if (info.eid === ant1) debugInfo1 = info;
         if (info.eid === ant2) debugInfo2 = info;
-      }
+      },
+      false
     )(world);
     followSystem();
 

@@ -64,13 +64,13 @@ export const MovementSystem = (world: IWorld) => {
     const grid = (window as { game?: { pheromoneGrid: PheromoneGrid } }).game
       ?.pheromoneGrid;
 
-    if (!grid) {
-      console.warn("No pheromone grid found in game instance");
-      return;
-    }
-
-    const halfWidth = grid.getGridWidth() / (2 * grid.getResolution());
-    const halfHeight = grid.getGridHeight() / (2 * grid.getResolution());
+    // If no grid is available, use default boundaries
+    const halfWidth = grid
+      ? grid.getGridWidth() / (2 * grid.getResolution())
+      : 400;
+    const halfHeight = grid
+      ? grid.getGridHeight() / (2 * grid.getResolution())
+      : 300;
 
     for (const eid of entities) {
       // Calculate new position
@@ -305,7 +305,8 @@ export type PheromoneFollowDebugInfo = {
 export const PheromoneFollowSystem =
   (
     pheromoneGrid: PheromoneGrid,
-    debugCb?: (info: PheromoneFollowDebugInfo) => void
+    debugCb?: (info: PheromoneFollowDebugInfo) => void,
+    skipFrames: boolean = true // default: skip frames (production)
   ) =>
   (world: IWorld) => {
     const query = defineQuery([
@@ -319,9 +320,11 @@ export const PheromoneFollowSystem =
     let frameCounter = 0;
 
     return () => {
-      // Only sample every 3 frames to reduce CPU load
-      frameCounter = (frameCounter + 1) % 3;
-      if (frameCounter !== 0) return;
+      // Only sample every 3 frames to reduce CPU load (unless disabled for tests)
+      if (skipFrames) {
+        frameCounter = (frameCounter + 1) % 3;
+        if (frameCounter !== 0) return;
+      }
 
       const entities = query(world);
       for (const eid of entities) {
