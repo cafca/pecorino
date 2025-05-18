@@ -13,6 +13,8 @@ import {
 import { createWorld, addComponent, addEntity, defineQuery } from "bitecs";
 import { MovementSystem, ForageBehaviorSystem } from "../systems";
 import { NEST_RADIUS } from "@/game/constants";
+import { createAnt } from "@/game/prefabs/ant";
+import { createNest } from "@/game/prefabs/nest";
 
 describe("Game Components", () => {
   describe("Position", () => {
@@ -201,21 +203,18 @@ describe("HUD", () => {
   it("shows correct food count from the nest", () => {
     const world = createWorld();
     // Create nest
-    const nest = addEntity(world);
-    addComponent(world, Position, nest);
-    addComponent(world, Nest, nest);
-    Position.x[nest] = 0;
-    Position.y[nest] = 0;
+    const nest = createNest(world, {
+      x: 0,
+      y: 0,
+    });
 
-    // Create an ant carrying food
-    const ant = addEntity(world);
-    addComponent(world, Position, ant);
-    addComponent(world, ForagerRole, ant);
-    addComponent(world, Target, ant);
-    addComponent(world, Velocity, ant);
-    addComponent(world, PlayerControlled, ant);
-    Position.x[ant] = NEST_RADIUS / 2;
-    Position.y[ant] = NEST_RADIUS / 2;
+    // // Create an ant carrying food
+    const ant = createAnt(world, {
+      x: NEST_RADIUS / 2,
+      y: NEST_RADIUS / 2,
+      isPlayer: false,
+      initialAge: 0,
+    });
     ForagerRole.state[ant] = 1; // Carrying food
     ForagerRole.foodCarried[ant] = 1;
     Target.x[ant] = 0;

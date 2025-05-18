@@ -1,23 +1,12 @@
-import {
-  createWorld,
-  addComponent,
-  addEntity,
-  defineQuery,
-  removeComponent,
-} from "bitecs";
+import { createWorld, defineQuery, removeEntity } from "bitecs";
 import { Application, Assets, Container, Graphics } from "pixi.js";
 import { CompositeTilemap } from "@pixi/tilemap";
 import {
   Position,
-  Velocity,
-  Sprite,
   PlayerControlled,
   ForagerRole,
-  Target,
   Food,
-  AntState,
   Nest,
-  Age,
   TargetVisualization,
 } from "./components";
 import {
@@ -29,9 +18,12 @@ import {
   AgingSystem,
 } from "../systems";
 import { TargetVisualizationSystem } from "../systems/TargetVisualizationSystem";
-import { ANT_MAX_AGE, INITIAL_SPAWN_RATE } from "./constants";
+import { INITIAL_SPAWN_RATE } from "./constants";
 import { MapLoader } from "./mapLoader";
 import type { IWorld } from "bitecs";
+import { createAnt } from "./prefabs/ant";
+import { createFood } from "./prefabs/food";
+import { createNest } from "./prefabs/nest";
 
 export class Game {
   public readonly world = createWorld();
@@ -117,79 +109,22 @@ export class Game {
     isPlayer: boolean = false,
     initialAge?: number
   ) {
-    const ant = addEntity(this.world);
-
-    addComponent(this.world, Position, ant);
-    addComponent(this.world, Velocity, ant);
-    addComponent(this.world, Sprite, ant);
-    addComponent(this.world, PlayerControlled, ant);
-    addComponent(this.world, ForagerRole, ant);
-    addComponent(this.world, Target, ant);
-    addComponent(this.world, AntState, ant);
-    addComponent(this.world, Age, ant);
-    addComponent(this.world, TargetVisualization, ant);
-
-    // Set initial values
-    Position.x[ant] = x;
-    Position.y[ant] = y;
-    Velocity.x[ant] = 0;
-    Velocity.y[ant] = 0;
-    PlayerControlled.speed[ant] = 100;
-    PlayerControlled.isPlayer[ant] = isPlayer ? 1 : 0;
-    Sprite.texture[ant] = 0; // ant texture
-    Sprite.width[ant] = 32;
-    Sprite.height[ant] = 32;
-    Sprite.scale[ant] = 0.025; // 25% of previous 0.1 scale
-    ForagerRole.state[ant] = 0;
-    ForagerRole.foodCarried[ant] = 0;
-    Target.x[ant] = 0;
-    Target.y[ant] = 0;
-    Target.type[ant] = 0;
-    AntState.currentState[ant] = 0;
-    AntState.previousState[ant] = 0;
-    AntState.stateTimer[ant] = 0;
-    Age.maxAge[ant] = ANT_MAX_AGE;
-    Age.currentAge[ant] =
-      initialAge !== undefined ? initialAge : Math.random() * 0.5 * ANT_MAX_AGE;
-    TargetVisualization.visible[ant] = this.showTargets ? 1 : 0;
-
-    return ant;
+    return createAnt(this.world, {
+      x,
+      y,
+      isPlayer,
+      initialAge,
+      showTargets: this.showTargets,
+    });
   }
 
   public createFood(x: number, y: number) {
-    const food = addEntity(this.world);
-
-    addComponent(this.world, Position, food);
-    addComponent(this.world, Sprite, food);
-    addComponent(this.world, Food, food);
-
-    Position.x[food] = x;
-    Position.y[food] = y;
-    Sprite.texture[food] = 1; // food texture
-    Sprite.width[food] = 32;
-    Sprite.height[food] = 32;
-    Sprite.scale[food] = 0.025; // 25% of previous 0.1 scale
-    Food.amount[food] = 1;
-
-    return food;
+    return createFood(this.world, { x, y });
   }
 
-  private createNest() {
-    const nest = addEntity(this.world);
-
-    addComponent(this.world, Position, nest);
-    addComponent(this.world, Sprite, nest);
-    addComponent(this.world, Nest, nest);
-
-    Position.x[nest] = 0;
-    Position.y[nest] = 0;
-    Sprite.texture[nest] = 2; // nest texture
-    Sprite.width[nest] = 64; // Make nest bigger than ants
-    Sprite.height[nest] = 64;
-    Sprite.scale[nest] = 0.05; // 25% of previous 0.2 scale
-    Nest.foodCount[nest] = 0;
-
-    return nest;
+  private createNest(x: number, y: number) {
+    // Create the nest in the center of the map
+    return createNest(this.world, { x, y });
   }
 
   private initDemo() {
@@ -197,11 +132,9 @@ export class Game {
     this.gameContainer.addChild(this.targetGraphics);
 
     // Create nest at center of screen
-    const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2;
-    const nest = this.createNest();
-    Position.x[nest] = centerX;
-    Position.y[nest] = centerY;
+    const centerX = this.app.screen.width / 2;
+    const centerY = this.app.screen.height / 2;
+    this.createNest(centerX, centerY);
 
     // Create player ant slightly below nest
     this.createAnt(centerX, centerY + 32, true);
@@ -370,14 +303,7 @@ export class Game {
       );
       for (let i = 0; i < -diff && i < ants.length; i++) {
         const ant = ants[i];
-        removeComponent(this.world, Position, ant);
-        removeComponent(this.world, Velocity, ant);
-        removeComponent(this.world, Sprite, ant);
-        removeComponent(this.world, PlayerControlled, ant);
-        removeComponent(this.world, ForagerRole, ant);
-        removeComponent(this.world, Target, ant);
-        removeComponent(this.world, AntState, ant);
-        removeComponent(this.world, Age, ant);
+        removeEntity(this.world, ant);
       }
     }
   }

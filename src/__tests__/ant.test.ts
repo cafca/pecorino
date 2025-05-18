@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach } from "vitest";
-import { createWorld, addComponent, addEntity, hasComponent } from "bitecs";
+import { createWorld, hasComponent } from "bitecs";
 import {
   Position,
   Velocity,
@@ -7,11 +7,11 @@ import {
   ForagerRole,
   Target,
   Age,
-  Sprite,
   AntState,
 } from "../game/components";
 import { AgingSystem } from "../systems";
 import { ANT_MAX_AGE, ANT_AGE_INCREMENT } from "../game/constants";
+import { createAnt } from "@/game/prefabs/ant";
 
 describe("Ant Components", () => {
   let world: ReturnType<typeof createWorld>;
@@ -21,12 +21,12 @@ describe("Ant Components", () => {
   });
 
   test("ant has all required components", () => {
-    const ant = addEntity(world);
-    addComponent(world, Position, ant);
-    addComponent(world, Velocity, ant);
-    addComponent(world, PlayerControlled, ant);
-    addComponent(world, ForagerRole, ant);
-    addComponent(world, Target, ant);
+    const ant = createAnt(world, {
+      x: 100,
+      y: 100,
+      isPlayer: false,
+      initialAge: 0,
+    });
 
     // Verify components are properly initialized
     expect(Position.x[ant]).toBeDefined();
@@ -43,25 +43,12 @@ describe("Ant Components", () => {
   });
 
   test("agent ant has correct initial values", () => {
-    const ant = addEntity(world);
-    addComponent(world, Position, ant);
-    addComponent(world, Velocity, ant);
-    addComponent(world, PlayerControlled, ant);
-    addComponent(world, ForagerRole, ant);
-    addComponent(world, Target, ant);
-
-    // Set initial values
-    Position.x[ant] = 100;
-    Position.y[ant] = 100;
-    Velocity.x[ant] = 0;
-    Velocity.y[ant] = 0;
-    PlayerControlled.speed[ant] = 100;
-    PlayerControlled.isPlayer[ant] = 0;
-    ForagerRole.state[ant] = 0;
-    ForagerRole.foodCarried[ant] = 0;
-    Target.x[ant] = 0;
-    Target.y[ant] = 0;
-    Target.type[ant] = 0;
+    const ant = createAnt(world, {
+      x: 100,
+      y: 100,
+      isPlayer: false,
+      initialAge: 0,
+    });
 
     // Verify values
     expect(Position.x[ant]).toBe(100);
@@ -72,9 +59,14 @@ describe("Ant Components", () => {
     expect(PlayerControlled.isPlayer[ant]).toBe(0);
     expect(ForagerRole.state[ant]).toBe(0);
     expect(ForagerRole.foodCarried[ant]).toBe(0);
-    expect(Target.x[ant]).toBe(0);
-    expect(Target.y[ant]).toBe(0);
+    expect(Target.x[ant]).toBe(100);
+    expect(Target.y[ant]).toBe(100);
     expect(Target.type[ant]).toBe(0);
+    expect(AntState.currentState[ant]).toBe(0);
+    expect(AntState.previousState[ant]).toBe(0);
+    expect(AntState.stateTimer[ant]).toBe(0);
+    expect(Age.currentAge[ant]).toBe(0);
+    expect(Age.maxAge[ant]).toBe(ANT_MAX_AGE);
   });
 });
 
@@ -88,38 +80,28 @@ describe("Ant Aging", () => {
   });
 
   test("ant age increases over time", () => {
-    const ant = addEntity(world);
-    addComponent(world, Position, ant);
-    addComponent(world, Age, ant);
-    addComponent(world, PlayerControlled, ant);
-
-    // Set initial values
-    Age.currentAge[ant] = 0;
-    Age.maxAge[ant] = ANT_MAX_AGE;
-    PlayerControlled.isPlayer[ant] = 0;
+    const ant = createAnt(world, {
+      x: 100,
+      y: 100,
+      isPlayer: false,
+      initialAge: 0,
+    });
 
     // Run aging system for 1 second
     agingSystem(1.0);
 
     // Age should increase by ANT_AGE_INCREMENT
     expect(Age.currentAge[ant]).toBe(ANT_AGE_INCREMENT);
+    expect(Age.maxAge[ant]).toBe(ANT_MAX_AGE);
   });
 
   test("ant dies when reaching max age", () => {
-    const ant = addEntity(world);
-    addComponent(world, Position, ant);
-    addComponent(world, Velocity, ant);
-    addComponent(world, Sprite, ant);
-    addComponent(world, PlayerControlled, ant);
-    addComponent(world, ForagerRole, ant);
-    addComponent(world, Target, ant);
-    addComponent(world, AntState, ant);
-    addComponent(world, Age, ant);
-
-    // Set initial values
-    Age.currentAge[ant] = ANT_MAX_AGE - 1;
-    Age.maxAge[ant] = ANT_MAX_AGE;
-    PlayerControlled.isPlayer[ant] = 0;
+    const ant = createAnt(world, {
+      x: 100,
+      y: 100,
+      isPlayer: false,
+      initialAge: ANT_MAX_AGE - 1,
+    });
 
     // Run aging system for 1 second
     agingSystem(1.0);
@@ -130,20 +112,17 @@ describe("Ant Aging", () => {
   });
 
   test("player ant does not die from old age", () => {
-    const ant = addEntity(world);
-    addComponent(world, Position, ant);
-    addComponent(world, Velocity, ant);
-    addComponent(world, Sprite, ant);
-    addComponent(world, PlayerControlled, ant);
-    addComponent(world, ForagerRole, ant);
-    addComponent(world, Target, ant);
-    addComponent(world, AntState, ant);
-    addComponent(world, Age, ant);
+    const ant = createAnt(world, {
+      x: 100,
+      y: 100,
+      isPlayer: true,
+      initialAge: ANT_MAX_AGE - 1,
+    });
 
-    // Set initial values
-    Age.currentAge[ant] = ANT_MAX_AGE - 1;
-    Age.maxAge[ant] = ANT_MAX_AGE;
-    PlayerControlled.isPlayer[ant] = 1;
+    // Verify initial values
+    expect(Age.currentAge[ant]).toBe(ANT_MAX_AGE - 1);
+    expect(Age.maxAge[ant]).toBe(ANT_MAX_AGE);
+    expect(PlayerControlled.isPlayer[ant]).toBe(1);
 
     // Run aging system for 1 second
     agingSystem(1.0);

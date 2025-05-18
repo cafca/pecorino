@@ -2,15 +2,12 @@ import {
   Position,
   ForagerRole,
   Food,
-  Velocity,
   Target,
   PlayerControlled,
   Nest,
-  AntState,
   Sprite,
-  Age,
 } from "@/game/components";
-import { removeComponent, defineQuery, addEntity, addComponent } from "bitecs";
+import { removeComponent, defineQuery } from "bitecs";
 import type { IWorld } from "bitecs";
 import {
   FOOD_DETECTION_RANGE,
@@ -21,8 +18,8 @@ import {
   EXPLORATION_TARGET_TIMEOUT,
   EXPLORATION_TARGET_REACHED_DISTANCE,
   ANT_SPAWN_COST,
-  ANT_MAX_AGE,
 } from "../game/constants";
+import { createAnt } from "../game/prefabs/ant";
 
 // Track exploration targets and their timestamps
 const explorationTargets = new Map<
@@ -171,47 +168,13 @@ const handleCarryFoodState = (
 
     // If we've collected enough food items, spawn a new ant
     if (Nest.foodCount[nest] >= ANT_SPAWN_COST) {
-      // Create new ant at nest location with age 0
-      if (
-        typeof window !== "undefined" &&
-        window.game &&
-        typeof window.game.createAnt === "function"
-      ) {
-        window.game.createAnt(0, 0, false, 0);
-      } else {
-        // fallback: direct entity creation (for tests)
-        const newAnt = addEntity(world);
-        addComponent(world, Position, newAnt);
-        addComponent(world, Velocity, newAnt);
-        addComponent(world, Sprite, newAnt);
-        addComponent(world, PlayerControlled, newAnt);
-        addComponent(world, ForagerRole, newAnt);
-        addComponent(world, Target, newAnt);
-        addComponent(world, AntState, newAnt);
-        addComponent(world, Age, newAnt);
-
-        // Set initial values for new ant
-        Position.x[newAnt] = Position.x[nest];
-        Position.y[newAnt] = Position.y[nest];
-        Velocity.x[newAnt] = 0;
-        Velocity.y[newAnt] = 0;
-        PlayerControlled.speed[newAnt] = 100;
-        PlayerControlled.isPlayer[newAnt] = 0;
-        Sprite.texture[newAnt] = 0; // ant texture
-        Sprite.width[newAnt] = 32;
-        Sprite.height[newAnt] = 32;
-        Sprite.scale[newAnt] = 0.1;
-        ForagerRole.state[newAnt] = 0;
-        ForagerRole.foodCarried[newAnt] = 0;
-        Target.x[newAnt] = Position.x[nest];
-        Target.y[newAnt] = Position.y[nest];
-        Target.type[newAnt] = 0;
-        AntState.currentState[newAnt] = 0;
-        AntState.previousState[newAnt] = 0;
-        AntState.stateTimer[newAnt] = 0;
-        Age.currentAge[newAnt] = 0;
-        Age.maxAge[newAnt] = ANT_MAX_AGE;
-      }
+      // Create new ant at nest location
+      createAnt(world, {
+        x: Position.x[nest],
+        y: Position.y[nest],
+        isPlayer: false,
+        initialAge: 0,
+      });
 
       // Reset nest's food count after spawning
       Nest.foodCount[nest] = 0;
