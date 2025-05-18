@@ -60,8 +60,8 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
 
   const createLabel = () => {
     const label = new Text("", {
-      fontSize: 12,
-      fill: 0x666666,
+      fontSize: 9,
+      fill: 0x333333,
       align: "center",
     });
     label.anchor.set(1.5);

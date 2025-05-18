@@ -1,12 +1,9 @@
-import { defineQuery } from "bitecs";
+import { defineQuery, type IWorld } from "bitecs";
 import { Camera } from "../game/components/Camera";
 import { Container } from "pixi.js";
-import { Game } from "../game/game";
 import { ZOOM_LERP_FACTOR } from "@/game/constants";
 
-declare const game: Game;
-
-export const CameraSystem = (gameContainer: Container) => {
+export const CameraSystem = (world: IWorld, gameContainer: Container) => {
   const cameraQuery = defineQuery([Camera]);
   let lastMouseX = 0;
   let lastMouseY = 0;
@@ -19,7 +16,7 @@ export const CameraSystem = (gameContainer: Container) => {
 
   // Add event listeners for camera controls
   window.addEventListener("wheel", (e) => {
-    const entities = cameraQuery(game.world);
+    const entities = cameraQuery(world);
     if (entities.length === 0) return;
 
     const camera = entities[0];
@@ -38,7 +35,7 @@ export const CameraSystem = (gameContainer: Container) => {
   window.addEventListener("mousedown", (e) => {
     if (e.button === 1 || e.button === 2) {
       // Middle or right mouse button
-      const entities = cameraQuery(game.world);
+      const entities = cameraQuery(world);
       if (entities.length === 0) return;
 
       const camera = entities[0];
@@ -54,7 +51,7 @@ export const CameraSystem = (gameContainer: Container) => {
   });
 
   window.addEventListener("mousemove", (e) => {
-    const entities = cameraQuery(game.world);
+    const entities = cameraQuery(world);
     if (entities.length === 0) return;
 
     const camera = entities[0];
@@ -71,7 +68,7 @@ export const CameraSystem = (gameContainer: Container) => {
   });
 
   window.addEventListener("mouseup", () => {
-    const entities = cameraQuery(game.world);
+    const entities = cameraQuery(world);
     if (entities.length === 0) return;
 
     const camera = entities[0];
@@ -84,7 +81,7 @@ export const CameraSystem = (gameContainer: Container) => {
   });
 
   return () => {
-    const entities = cameraQuery(game.world);
+    const entities = cameraQuery(world);
     if (entities.length === 0) return;
 
     const camera = entities[0];

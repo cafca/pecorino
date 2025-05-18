@@ -83,7 +83,7 @@ export class Game {
 
     // Initialize camera using the prefab
     createCamera(this.world);
-    this.cameraSystem = CameraSystem(this.gameContainer);
+    this.cameraSystem = CameraSystem(this.world, this.gameContainer);
   }
 
   private async initAssets() {
@@ -236,9 +236,6 @@ export class Game {
     game.initMap();
     game.initGameLoop();
     game.initResizeHandler();
-
-    // Make game instance available globally for camera system
-    window.game = game;
 
     return game;
   }
