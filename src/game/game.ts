@@ -25,7 +25,7 @@ import {
   ForageBehaviorSystem,
   AntStateSystem,
   AgingSystem,
-} from "../systems/systems";
+} from "../systems";
 import { ANT_MAX_AGE } from "./constants";
 
 export class Game {

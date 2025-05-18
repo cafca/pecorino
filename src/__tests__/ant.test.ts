@@ -10,7 +10,7 @@ import {
   Sprite,
   AntState,
 } from "../game/components";
-import { AgingSystem } from "../systems/systems";
+import { AgingSystem } from "../systems";
 import { ANT_MAX_AGE, ANT_AGE_INCREMENT } from "../game/constants";
 
 describe("Ant Components", () => {

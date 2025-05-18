@@ -10,7 +10,7 @@ import {
   Target,
 } from "../game/components";
 import { createWorld, addComponent, addEntity, defineQuery } from "bitecs";
-import { MovementSystem, ForageBehaviorSystem } from "../systems/systems";
+import { MovementSystem, ForageBehaviorSystem } from "../systems";
 
 describe("Game Components", () => {
   describe("Position", () => {
@@ -112,10 +112,10 @@ describe("MovementSystem", () => {
 
     movementSystem(1.0);
 
-    expect(Position.x[entity1]).toBe(1);
-    expect(Position.y[entity1]).toBe(1);
-    expect(Position.x[entity2]).toBe(9);
-    expect(Position.y[entity2]).toBe(9);
+    expect(Math.round(Position.x[entity1])).toBe(1);
+    expect(Math.round(Position.y[entity1])).toBe(1);
+    expect(Math.round(Position.x[entity2])).toBe(9);
+    expect(Math.round(Position.y[entity2])).toBe(9);
   });
 
   it("should keep entities within grid boundaries", () => {

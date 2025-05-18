@@ -11,8 +11,6 @@ import {
   Age,
 } from "@/game/components";
 import { removeComponent, defineQuery, addEntity, addComponent } from "bitecs";
-import { Sprite as PixiSprite } from "pixi.js";
-
 import type { IWorld } from "bitecs";
 import {
   FOOD_DETECTION_RANGE,
@@ -54,16 +52,14 @@ const findNearestFood = (x: number, y: number, foods: number[]) => {
 };
 
 const pickupFood = (ant: number, food: number, world: IWorld) => {
+  // Set ant state to carrying food
   ForagerRole.state[ant] = 1; // Switch to CarryFood
   ForagerRole.foodCarried[ant] = 1;
-  Food.amount[food] -= 1;
 
-  // Remove food entity if amount reaches 0
-  if (Food.amount[food] <= 0) {
-    removeComponent(world, Position, food);
-    removeComponent(world, PixiSprite, food);
-    removeComponent(world, Food, food);
-  }
+  // Remove food entity immediately
+  removeComponent(world, Position, food);
+  removeComponent(world, Sprite, food);
+  removeComponent(world, Food, food);
 };
 
 const handleFindFoodState = (
@@ -149,20 +145,23 @@ const handleCarryFoodState = (
 
   // If at nest, deposit food
   const distToNest = Math.sqrt(x * x + y * y);
-  if (distToNest < NEST_RADIUS) {
-    ForagerRole.state[ant] = 0; // Switch back to FindFood
-    ForagerRole.foodCarried[ant] = 0;
-
+  if (distToNest < NEST_RADIUS && ForagerRole.foodCarried[ant] === 1) {
     // Find the nest and increment its food count
     const nestQuery = defineQuery([Nest]);
     const nests = nestQuery(world);
     if (nests.length > 0) {
       const nest = nests[0];
+
+      // Reset ant's food carrying state first
+      ForagerRole.state[ant] = 0; // Switch back to FindFood
+      ForagerRole.foodCarried[ant] = 0;
+
+      // Increment nest's food count
       Nest.foodCount[nest] += 1;
 
       // If we've collected enough food items, spawn a new ant
       if (Nest.foodCount[nest] >= ANT_SPAWN_COST) {
-        // Create new ant at nest location with age 0 using Game's createAnt
+        // Create new ant at nest location with age 0
         if (
           typeof window !== "undefined" &&
           window.game &&
@@ -203,6 +202,9 @@ const handleCarryFoodState = (
           Age.currentAge[newAnt] = 0;
           Age.maxAge[newAnt] = ANT_MAX_AGE;
         }
+
+        // Reset nest's food count after spawning
+        Nest.foodCount[nest] = 0;
       }
     }
   }

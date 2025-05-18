@@ -6,8 +6,9 @@ import {
   ForagerRole,
   Target,
   Velocity,
+  PlayerControlled,
 } from "../game/components";
-import { ForageBehaviorSystem } from "../systems/systems";
+import { ForageBehaviorSystem } from "../systems";
 
 describe("Nest", () => {
   let world: ReturnType<typeof createWorld>;
@@ -44,6 +45,7 @@ describe("Nest", () => {
     addComponent(world, ForagerRole, ant);
     addComponent(world, Target, ant);
     addComponent(world, Velocity, ant);
+    addComponent(world, PlayerControlled, ant);
 
     // Set ant position within nest radius (48 units)
     Position.x[ant] = 20;
@@ -55,6 +57,8 @@ describe("Nest", () => {
     Target.type[ant] = 1;
     Velocity.x[ant] = 0;
     Velocity.y[ant] = 0;
+    PlayerControlled.isPlayer[ant] = 0;
+    PlayerControlled.speed[ant] = 0;
 
     // Run forage behavior system
     const forageSystem = ForageBehaviorSystem(world);
