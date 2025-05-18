@@ -6,6 +6,7 @@ import {
   Target,
   PlayerControlled,
   PheromoneEmitter,
+  Nest,
 } from "@/game/components";
 import { removeComponent, defineQuery } from "bitecs";
 import { Sprite } from "pixi.js";
@@ -150,7 +151,8 @@ const handleCarryFoodState = (
   ant: number,
   x: number,
   y: number,
-  isPlayer: boolean
+  isPlayer: boolean,
+  world: IWorld
 ) => {
   // For AI ants, set target to nest
   if (!isPlayer) {
@@ -167,6 +169,15 @@ const handleCarryFoodState = (
     ForagerRole.state[ant] = 0; // Switch back to FindFood
     ForagerRole.foodCarried[ant] = 0;
     PheromoneEmitter.isEmitting[ant] = 0; // Stop emitting pheromones
+
+    // Find the nest and increment its food count
+    const nestQuery = defineQuery([Nest]);
+    const nests = nestQuery(world);
+    if (nests.length > 0) {
+      const nest = nests[0];
+      Nest.foodCount[nest] += 1;
+    }
+
     console.log("Food deposited at nest!");
   }
 };
@@ -196,7 +207,7 @@ export const ForageBehaviorSystem = (world: IWorld) => {
       if (state === 0) {
         handleFindFoodState(eid, x, y, isPlayer, foods, world);
       } else if (state === 1 && isCarryingFood) {
-        handleCarryFoodState(eid, x, y, isPlayer);
+        handleCarryFoodState(eid, x, y, isPlayer, world);
       }
     }
   };

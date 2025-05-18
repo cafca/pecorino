@@ -17,6 +17,7 @@ import {
   Target,
   Food,
   AntState,
+  Nest,
 } from "./components";
 import {
   InputSystem,
@@ -160,6 +161,7 @@ export class Game {
 
     addComponent(this.world, Position, nest);
     addComponent(this.world, Sprite, nest);
+    addComponent(this.world, Nest, nest);
 
     Position.x[nest] = 0;
     Position.y[nest] = 0;
@@ -167,6 +169,7 @@ export class Game {
     Sprite.width[nest] = 64; // Make nest bigger than ants
     Sprite.height[nest] = 64;
     Sprite.scale[nest] = 0.2;
+    Nest.foodCount[nest] = 0;
 
     return nest;
   }
@@ -282,10 +285,10 @@ export class Game {
     // Count ants
     this.antCount = this.antQuery(this.world).length;
 
-    // Count food in colony (food carried by ants)
-    this.colonyFood = this.antQuery(this.world).reduce((total, ant) => {
-      return total + (ForagerRole.foodCarried[ant] === 1 ? 1 : 0);
-    }, 0);
+    // Get food count from nest
+    const nestQuery = defineQuery([Nest]);
+    const nests = nestQuery(this.world);
+    this.colonyFood = nests.length > 0 ? Nest.foodCount[nests[0]] : 0;
   }
 
   public getHUDState() {

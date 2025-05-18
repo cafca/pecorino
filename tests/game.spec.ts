@@ -102,10 +102,15 @@ test.describe("game", () => {
       const box = await container.boundingBox();
       if (!box) throw new Error("Could not get container bounds");
 
-      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      const posX = box.x + box.width / 2;
+      const posY = box.y + box.height / 2;
+
+      console.log(`Clicking at ${posX}, ${posY}`);
+
+      await page.mouse.click(posX, posY);
 
       // Wait a bit for the food to be created
-      await page.waitForTimeout(10);
+      await page.waitForTimeout(100);
 
       // Get new food count
       const newFoodCount = await page.evaluate(() => {

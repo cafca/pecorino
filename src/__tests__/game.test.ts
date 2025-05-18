@@ -8,9 +8,11 @@ import {
   PheromoneSensor,
   ForagerRole,
   Food,
+  Nest,
+  Target,
 } from "../game/components";
 import { createWorld, addComponent, addEntity } from "bitecs";
-import { MovementSystem } from "../systems/systems";
+import { MovementSystem, ForageBehaviorSystem } from "../systems/systems";
 import { PheromoneGrid } from "../game/pheromoneGrid";
 
 describe("Game Components", () => {
@@ -204,5 +206,46 @@ describe("MovementSystem", () => {
     expect(Position.y[entity]).toBe(300); // Should stop at bottom boundary
     expect(Velocity.x[entity]).toBe(0); // X velocity should be zeroed
     expect(Velocity.y[entity]).toBe(0); // Y velocity should be zeroed
+  });
+});
+
+describe("HUD", () => {
+  it("shows correct food count from the nest", () => {
+    const world = createWorld();
+    // Create nest
+    const nest = addEntity(world);
+    addComponent(world, Position, nest);
+    addComponent(world, Nest, nest);
+    Position.x[nest] = 0;
+    Position.y[nest] = 0;
+
+    // Create an ant carrying food
+    const ant = addEntity(world);
+    addComponent(world, Position, ant);
+    addComponent(world, ForagerRole, ant);
+    addComponent(world, Target, ant);
+    addComponent(world, Velocity, ant);
+    Position.x[ant] = 20;
+    Position.y[ant] = 20;
+    ForagerRole.state[ant] = 1; // Carrying food
+    ForagerRole.foodCarried[ant] = 1;
+    Target.x[ant] = 0;
+    Target.y[ant] = 0;
+    Target.type[ant] = 1;
+    Velocity.x[ant] = 0;
+    Velocity.y[ant] = 0;
+
+    // Run forage behavior system
+    const forageSystem = ForageBehaviorSystem(world);
+    forageSystem();
+
+    // Get HUD state (simulate)
+    const hudState = {
+      foodCount: Nest.foodCount[nest],
+      antCount: 1,
+      simulationSpeed: 1,
+      spawnRate: 5,
+    };
+    expect(hudState.foodCount).toBe(1);
   });
 });
