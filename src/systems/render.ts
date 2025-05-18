@@ -16,6 +16,7 @@ import {
   AntState,
   Age,
   AntStateType,
+  Target,
 } from "@/game/components";
 
 // Render System
@@ -104,8 +105,27 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
 
     if (Sprite.texture[eid] === 0) {
       if (Velocity.x[eid] !== 0 || Velocity.y[eid] !== 0) {
-        sprite.rotation =
-          Math.atan2(Velocity.y[eid], Velocity.x[eid]) + Math.PI;
+        const movingRight =
+          Math.cos(Math.atan2(Velocity.y[eid], Velocity.x[eid])) > 0;
+
+        if (Target.x[eid] !== 0 && !PlayerControlled.isPlayer[eid]) {
+          if (movingRight) {
+            sprite.rotation = Math.atan2(
+              Target.y[eid] - Position.y[eid],
+              Target.x[eid] - Position.x[eid]
+            );
+          } else {
+            sprite.rotation =
+              Math.atan2(
+                Target.y[eid] - Position.y[eid],
+                Target.x[eid] - Position.x[eid]
+              ) + Math.PI;
+          }
+        }
+
+        sprite.scale.x = movingRight
+          ? -Math.abs(sprite.scale.y)
+          : Math.abs(sprite.scale.y);
       }
       updateLabel(eid);
     } else {
