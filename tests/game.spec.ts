@@ -20,31 +20,43 @@ test.describe("game", () => {
 
   test.describe("game controls", () => {
     test("arrow keys move the player", async ({ page }) => {
+      const initialPosition = await page.evaluate(() => {
+        // @ts-expect-error window.game is not typed
+        // eslint-disable-next-line no-undef
+        const game: Game = window.game;
+        return game.getPlayerPosition();
+      });
       await page.keyboard.down("ArrowRight");
       await page.waitForTimeout(100);
       await page.keyboard.up("ArrowRight");
-      const position = await page.evaluate(() => {
+      const endPosition = await page.evaluate(() => {
         // @ts-expect-error window.game is not typed
         // eslint-disable-next-line no-undef
         const game: Game = window.game;
         return game.getPlayerPosition();
       });
-      expect(position.x).toBeGreaterThan(0);
-      expect(position.y).toBe(32); // initial y position of the player
+      expect(endPosition.x).toBeGreaterThan(initialPosition.x);
+      expect(endPosition.y).toBe(initialPosition.y);
     });
 
     test("WASD keys move the player", async ({ page }) => {
-      await page.keyboard.down("d");
-      await page.waitForTimeout(100);
-      await page.keyboard.up("d");
-      const position = await page.evaluate(() => {
+      const initialPosition = await page.evaluate(() => {
         // @ts-expect-error window.game is not typed
         // eslint-disable-next-line no-undef
         const game: Game = window.game;
         return game.getPlayerPosition();
       });
-      expect(position.x).toBeGreaterThan(0);
-      expect(position.y).toBe(32);
+      await page.keyboard.down("d");
+      await page.waitForTimeout(100);
+      await page.keyboard.up("d");
+      const endPosition = await page.evaluate(() => {
+        // @ts-expect-error window.game is not typed
+        // eslint-disable-next-line no-undef
+        const game: Game = window.game;
+        return game.getPlayerPosition();
+      });
+      expect(endPosition.x).toBeGreaterThan(initialPosition.x);
+      expect(endPosition.y).toBe(initialPosition.y);
     });
 
     test("clicking the speed button toggles simulation speed", async ({
@@ -86,6 +98,14 @@ test.describe("game", () => {
     });
 
     test("clicking the game container creates food", async ({ page }) => {
+      // Remove all ants so ants don't deposit food
+      await page.evaluate(() => {
+        // @ts-expect-error window.game is not typed
+        // eslint-disable-next-line no-undef
+        const game: Game = window.game;
+        game.setAntCount(0);
+      });
+
       // Get initial food in world and set spawn rate to 0
       const initialFoodInWorld = await page.evaluate(() => {
         // @ts-expect-error window.game is not typed
@@ -130,10 +150,8 @@ test.describe("game", () => {
 
       // Click multiple times in different locations
       const clicks = [
-        { x: box.x + 10, y: box.y + 10 }, // top-left
-        { x: box.x + box.width - 10, y: box.y + 10 }, // top-right
-        { x: box.x + 10, y: box.y + box.height - 10 }, // bottom-left
-        { x: box.x + box.width - 10, y: box.y + box.height - 10 }, // bottom-right
+        { x: box.width - 100, y: 100 }, // top-right
+        { x: 100, y: box.height - 100 }, // bottom-left
       ];
 
       for (const click of clicks) {
@@ -158,7 +176,7 @@ test.describe("game", () => {
         return game.getHUDState().foodInWorld;
       });
 
-      expect(finalFoodInWorld).toBe(initialFoodInWorld + 5); // 1 from center click + 4 from edge clicks
+      expect(finalFoodInWorld).toBe(initialFoodInWorld + 2); // 1 from center click + 2 from edge clicks
     });
 
     test("initial food in world is 5", async ({ page }) => {

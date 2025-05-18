@@ -97,8 +97,8 @@ export const App: React.FC = () => {
         onClick={(e) => {
           if (game) {
             const rect = e.currentTarget.getBoundingClientRect();
-            const x = e.clientX - rect.left - window.innerWidth / 2;
-            const y = e.clientY - rect.top - window.innerHeight / 2;
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
             game.createFood(x, y);
           }
         }}
