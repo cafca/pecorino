@@ -19,20 +19,22 @@ import type { PheromoneFollowDebugInfo } from "../systems/systems";
 
 describe("PheromoneGrid", () => {
   let grid: PheromoneGrid;
+  const gridSize = 10;
+  const halfGrid = gridSize / 2;
 
   beforeEach(() => {
-    grid = new PheromoneGrid(10, 10); // 10x10 tile grid
+    grid = new PheromoneGrid(gridSize, gridSize); // 10x10 tile grid
   });
 
   test("deposit and sample pheromones", () => {
-    grid.deposit(5, 5, 1.0);
-    expect(grid.sample(5, 5)).toBeCloseTo(1.0);
+    grid.deposit(0, 0, 1.0);
+    expect(grid.sample(0, 0)).toBeCloseTo(1.0);
   });
 
   test("pheromone evaporation and diffusion", () => {
     // Deposit a strong pheromone
-    grid.deposit(5, 5, 1.0);
-    const initialValue = grid.sample(5, 5);
+    grid.deposit(0, 0, 1.0);
+    const initialValue = grid.sample(0, 0);
 
     // Simulate several updates
     for (let i = 0; i < 10; i++) {
@@ -40,44 +42,44 @@ describe("PheromoneGrid", () => {
     }
 
     // Value should have decreased due to evaporation
-    const finalValue = grid.sample(5, 5);
+    const finalValue = grid.sample(0, 0);
     expect(finalValue).toBeLessThan(initialValue);
 
     // Check if diffusion occurred
-    const neighborValue = grid.sample(5.25, 5);
+    const neighborValue = grid.sample(0.25, 0);
     expect(neighborValue).toBeGreaterThan(0);
   });
 
   test("multiple deposits accumulate", () => {
-    grid.deposit(5, 5, 1.0);
-    grid.deposit(5, 5, 1.0);
-    expect(grid.sample(5, 5)).toBeCloseTo(2.0);
+    grid.deposit(0, 0, 1.0);
+    grid.deposit(0, 0, 1.0);
+    expect(grid.sample(0, 0)).toBeCloseTo(2.0);
   });
 
   test("boundary conditions", () => {
     // Test depositing outside grid
-    grid.deposit(-1, -1, 1.0);
-    grid.deposit(100, 100, 1.0);
-    expect(grid.sample(-1, -1)).toBe(0);
-    expect(grid.sample(100, 100)).toBe(0);
+    grid.deposit(-halfGrid - 1, -halfGrid - 1, 1.0);
+    grid.deposit(halfGrid + 1, halfGrid + 1, 1.0);
+    expect(grid.sample(-halfGrid - 1, -halfGrid - 1)).toBe(0);
+    expect(grid.sample(halfGrid + 1, halfGrid + 1)).toBe(0);
   });
 
   test("grid resolution accuracy", () => {
     // Test depositing at sub-grid positions
-    grid.deposit(5.25, 5.25, 1.0);
-    expect(grid.sample(5.25, 5.25)).toBeCloseTo(1.0);
-    expect(grid.sample(5.5, 5.5)).toBe(0); // Should not affect adjacent cells
+    grid.deposit(0.25, 0.25, 1.0);
+    expect(grid.sample(0.25, 0.25)).toBeCloseTo(1.0);
+    expect(grid.sample(0.5, 0.5)).toBe(0); // Should not affect adjacent cells
   });
 
   test("trail formation and decay", () => {
     // Create a trail by depositing in a line
     for (let i = 0; i < 5; i++) {
-      grid.deposit(5 + i, 5, 1.0);
+      grid.deposit(i - 2, 0, 1.0); // Centered at (0,0)
     }
 
     // Check initial trail strength
     for (let i = 0; i < 5; i++) {
-      expect(grid.sample(5 + i, 5)).toBeCloseTo(1.0);
+      expect(grid.sample(i - 2, 0)).toBeCloseTo(1.0);
     }
 
     // Simulate time passing
@@ -87,7 +89,7 @@ describe("PheromoneGrid", () => {
 
     // Trail should have decayed
     for (let i = 0; i < 5; i++) {
-      expect(grid.sample(5 + i, 5)).toBeLessThan(1.0);
+      expect(grid.sample(i - 2, 0)).toBeLessThan(1.0);
     }
   });
 });
@@ -167,8 +169,8 @@ describe("Pheromone Systems", () => {
     addComponent(world, PheromoneEmitter, ant);
     addComponent(world, ForagerRole, ant);
 
-    Position.x[ant] = 5;
-    Position.y[ant] = 5;
+    Position.x[ant] = 0;
+    Position.y[ant] = 0;
     PheromoneEmitter.strength[ant] = 1.0;
     PheromoneEmitter.isEmitting[ant] = 1;
     ForagerRole.state[ant] = 1;
@@ -176,7 +178,7 @@ describe("Pheromone Systems", () => {
     const depositSystem = PheromoneDepositSystem(grid)(world);
     depositSystem();
 
-    expect(grid.sample(5, 5)).toBeCloseTo(1.0);
+    expect(grid.sample(0, 0)).toBeCloseTo(1.0);
   });
 
   test("pheromone follow system", () => {

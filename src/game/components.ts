@@ -47,3 +47,18 @@ export const Target = defineComponent({
 export const Food = defineComponent({
   amount: Types.f32,
 });
+
+export enum AntStateType {
+  IDLE = 0,
+  EXPLORING = 1,
+  FOLLOWING_TRAIL = 2,
+  CARRYING_FOOD = 3,
+  RETURNING_TO_NEST = 4,
+  PLAYER_CONTROLLED = 5,
+}
+
+export const AntState = defineComponent({
+  currentState: Types.ui8,
+  previousState: Types.ui8,
+  stateTimer: Types.f32,
+});

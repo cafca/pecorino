@@ -16,6 +16,8 @@ import {
   PheromoneEmitter,
   PheromoneSensor,
   ForagerRole,
+  AntState,
+  AntStateType,
 } from "../game/components";
 import { PheromoneGrid } from "../game/pheromoneGrid";
 
@@ -178,14 +180,8 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
           // Update label for ants
           const label = labels.get(eid);
           if (label) {
-            let stateText = "";
-            if (PlayerControlled.isPlayer[eid] === 1) {
-              stateText = "Player";
-            } else if (ForagerRole.state[eid] === 1) {
-              stateText = "Carrying";
-            } else {
-              stateText = "Searching";
-            }
+            const stateType = AntState.currentState[eid];
+            const stateText = AntStateType[stateType];
             label.text = stateText;
             label.x = Position.x[eid];
             label.y = Position.y[eid] - 20; // Position label above the ant
@@ -350,3 +346,45 @@ export const PheromoneFollowSystem =
   };
 
 export { ForageBehaviorSystem } from "./forage-behavior";
+
+export const AntStateSystem = (world: IWorld) => {
+  const query = defineQuery([
+    AntState,
+    Position,
+    Velocity,
+    ForagerRole,
+    PlayerControlled,
+  ]);
+
+  return () => {
+    const entities = query(world);
+    for (const eid of entities) {
+      // State transition logic
+      if (PlayerControlled.isPlayer[eid] === 1) {
+        AntState.currentState[eid] = AntStateType.PLAYER_CONTROLLED;
+      } else if (ForagerRole.foodCarried[eid] === 1) {
+        AntState.currentState[eid] = AntStateType.CARRYING_FOOD;
+      } else if (Velocity.x[eid] !== 0 || Velocity.y[eid] !== 0) {
+        const pheromoneValue =
+          (
+            window as { game?: { pheromoneGrid: PheromoneGrid } }
+          ).game?.pheromoneGrid?.sample(Position.x[eid], Position.y[eid]) || 0;
+
+        AntState.currentState[eid] =
+          pheromoneValue > 0
+            ? AntStateType.FOLLOWING_TRAIL
+            : AntStateType.EXPLORING;
+      } else {
+        AntState.currentState[eid] = AntStateType.IDLE;
+      }
+
+      // Update state timer
+      if (AntState.previousState[eid] !== AntState.currentState[eid]) {
+        AntState.stateTimer[eid] = 0;
+        AntState.previousState[eid] = AntState.currentState[eid];
+      } else {
+        AntState.stateTimer[eid] += 1;
+      }
+    }
+  };
+};

@@ -1,12 +1,22 @@
 export class PheromoneGrid {
-  private grid: Float32Array;
-  private width: number;
-  private height: number;
+  private grid: Float32Array = new Float32Array(0);
+  private width: number = 0;
+  private height: number = 0;
   private resolution: number = 4; // 1/4 tile resolution
+  private worldWidth: number;
+  private worldHeight: number;
 
   constructor(width: number, height: number) {
-    this.width = width * this.resolution;
-    this.height = height * this.resolution;
+    this.worldWidth = width;
+    this.worldHeight = height;
+    this.resize(width, height);
+  }
+
+  resize(width: number, height: number) {
+    this.worldWidth = width;
+    this.worldHeight = height;
+    this.width = Math.ceil(width * this.resolution);
+    this.height = Math.ceil(height * this.resolution);
     this.grid = new Float32Array(this.width * this.height);
   }
 
@@ -27,10 +37,16 @@ export class PheromoneGrid {
     return this.grid;
   }
 
-  deposit(x: number, y: number, strength: number): void {
-    const gridX = Math.floor(x * this.resolution);
-    const gridY = Math.floor(y * this.resolution);
+  private worldToGrid(x: number, y: number): { x: number; y: number } {
+    // Convert world coordinates (centered at 0,0) to grid coordinates
+    // World coordinates range from -width/2 to width/2 and -height/2 to height/2
+    const gridX = Math.floor((x + this.worldWidth / 2) * this.resolution);
+    const gridY = Math.floor((y + this.worldHeight / 2) * this.resolution);
+    return { x: gridX, y: gridY };
+  }
 
+  deposit(x: number, y: number, strength: number): void {
+    const { x: gridX, y: gridY } = this.worldToGrid(x, y);
     if (this.isValidPosition(gridX, gridY)) {
       const index = gridY * this.width + gridX;
       this.grid[index] += strength;
@@ -38,13 +54,10 @@ export class PheromoneGrid {
   }
 
   sample(x: number, y: number): number {
-    const gridX = Math.floor(x * this.resolution);
-    const gridY = Math.floor(y * this.resolution);
-
+    const { x: gridX, y: gridY } = this.worldToGrid(x, y);
     if (!this.isValidPosition(gridX, gridY)) {
       return 0;
     }
-
     const index = gridY * this.width + gridX;
     return this.grid[index];
   }

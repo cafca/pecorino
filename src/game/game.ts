@@ -16,6 +16,7 @@ import {
   ForagerRole,
   Target,
   Food,
+  AntState,
 } from "./components";
 import {
   InputSystem,
@@ -24,6 +25,7 @@ import {
   PheromoneDepositSystem,
   PheromoneFollowSystem,
   ForageBehaviorSystem,
+  AntStateSystem,
 } from "../systems/systems";
 import { PheromoneGrid } from "./pheromoneGrid";
 import { Graphics } from "pixi.js";
@@ -38,6 +40,7 @@ export class Game {
   private pheromoneDepositSystem: () => void;
   private pheromoneFollowSystem: () => void;
   private forageBehaviorSystem: () => void;
+  private antStateSystem: () => void;
   private pheromoneGrid: PheromoneGrid;
   private playerQuery = defineQuery([Position, PlayerControlled]);
   private antQuery = defineQuery([Position, ForagerRole]);
@@ -51,7 +54,11 @@ export class Game {
 
   private constructor(app: Application) {
     this.app = app;
-    this.pheromoneGrid = new PheromoneGrid(100, 100); // 100x100 tile grid
+    // Initialize pheromone grid with window dimensions
+    this.pheromoneGrid = new PheromoneGrid(
+      window.innerWidth,
+      window.innerHeight
+    );
     this.inputSystem = InputSystem(this.world);
     this.movementSystem = MovementSystem(this.world);
     this.renderSystem = RenderSystem(this.app)(this.world);
@@ -62,6 +69,7 @@ export class Game {
       this.world
     );
     this.forageBehaviorSystem = ForageBehaviorSystem(this.world);
+    this.antStateSystem = AntStateSystem(this.world);
   }
 
   private async initAssets() {
@@ -100,6 +108,7 @@ export class Game {
     addComponent(this.world, PheromoneSensor, ant);
     addComponent(this.world, ForagerRole, ant);
     addComponent(this.world, Target, ant);
+    addComponent(this.world, AntState, ant);
 
     // Set initial values
     Position.x[ant] = x;
@@ -121,6 +130,9 @@ export class Game {
     Target.x[ant] = 0;
     Target.y[ant] = 0;
     Target.type[ant] = 0;
+    AntState.currentState[ant] = 0;
+    AntState.previousState[ant] = 0;
+    AntState.stateTimer[ant] = 0;
 
     return ant;
   }
@@ -197,6 +209,7 @@ export class Game {
       this.pheromoneDepositSystem();
       this.pheromoneFollowSystem();
       this.forageBehaviorSystem();
+      this.antStateSystem();
       this.pheromoneGrid.update(adjustedDelta);
       this.renderSystem();
 
@@ -215,6 +228,8 @@ export class Game {
   private initResizeHandler() {
     window.addEventListener("resize", () => {
       this.app.renderer.resize(window.innerWidth, window.innerHeight);
+      // Update pheromone grid size to match new window dimensions
+      this.pheromoneGrid.resize(window.innerWidth, window.innerHeight);
     });
   }
 
@@ -323,6 +338,7 @@ export class Game {
         removeComponent(this.world, PheromoneSensor, ant);
         removeComponent(this.world, ForagerRole, ant);
         removeComponent(this.world, Target, ant);
+        removeComponent(this.world, AntState, ant);
       }
     }
   }
