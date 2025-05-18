@@ -19,3 +19,6 @@ export const WORLD_HEIGHT = 640; // 20 tiles × 32 pixels
 
 // Camera constants
 export const ZOOM_LERP_FACTOR = 0.55; // Adjust this value to control zoom smoothness (0-1)
+
+// Add DEFAULT_SHOW_TARGETS to the exports
+export const DEFAULT_SHOW_TARGETS = false;

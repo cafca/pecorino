@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Game } from "./game/game";
 import { HUD } from "./game/HUD";
 import { LiveGraph } from "./game/LiveGraph";
-import { INITIAL_SPAWN_RATE } from "./game/constants";
+import { INITIAL_SPAWN_RATE, DEFAULT_SHOW_TARGETS } from "./game/constants";
 
 declare global {
   interface Window {
@@ -18,7 +18,7 @@ export const App: React.FC = () => {
     antCount: 0,
     simulationSpeed: 1,
     spawnRate: INITIAL_SPAWN_RATE,
-    showTargets: false,
+    showTargets: DEFAULT_SHOW_TARGETS,
   });
 
   useEffect(() => {

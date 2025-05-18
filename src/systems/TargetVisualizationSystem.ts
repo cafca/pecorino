@@ -12,8 +12,8 @@ export const TargetVisualizationSystem = (graphics: Graphics) => {
     graphics.clear();
     // use pixi v8 syntax
     graphics.setStrokeStyle({
-      color: "red",
-      width: 5,
+      color: "blue",
+      width: 3,
       alpha: 0.5,
     });
 
@@ -27,22 +27,25 @@ export const TargetVisualizationSystem = (graphics: Graphics) => {
 
     const entities = targetQuery(world);
     entities.forEach((eid) => {
-      if (TargetVisualization.visible[eid] === 1) {
-        // Get world coordinates
-        const startX = Position.x[eid];
-        const startY = Position.y[eid];
-        const endX = Target.x[eid];
-        const endY = Target.y[eid];
-
-        // Convert to screen coordinates
-        const screenStartX = startX * zoom + cameraX;
-        const screenStartY = startY * zoom + cameraY;
-        const screenEndX = endX * zoom + cameraX;
-        const screenEndY = endY * zoom + cameraY;
-
-        graphics.moveTo(screenStartX, screenStartY);
-        graphics.lineTo(screenEndX, screenEndY);
+      if (TargetVisualization.visible[eid] === 0) {
+        // player or disabled
+        return;
       }
+
+      // Get world coordinates
+      const startX = Position.x[eid];
+      const startY = Position.y[eid];
+      const endX = Target.x[eid];
+      const endY = Target.y[eid];
+
+      // Convert to screen coordinates
+      const screenStartX = startX * zoom + cameraX;
+      const screenStartY = startY * zoom + cameraY;
+      const screenEndX = endX * zoom + cameraX;
+      const screenEndY = endY * zoom + cameraY;
+
+      graphics.moveTo(screenStartX, screenStartY);
+      graphics.lineTo(screenEndX, screenEndY);
     });
 
     // Stroke all lines at once

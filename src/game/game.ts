@@ -18,7 +18,12 @@ import {
   AgingSystem,
 } from "../systems";
 import { TargetVisualizationSystem } from "../systems/TargetVisualizationSystem";
-import { INITIAL_SPAWN_RATE, WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
+import {
+  INITIAL_SPAWN_RATE,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
+  DEFAULT_SHOW_TARGETS,
+} from "./constants";
 import { MapLoader } from "./mapLoader";
 import { createAnt } from "./prefabs/ant";
 import { createFood } from "./prefabs/food";
@@ -48,7 +53,7 @@ export class Game {
   private mapHeight = 0;
   private gameContainer: Container;
   private targetGraphics: Graphics;
-  private showTargets = false;
+  private showTargets = DEFAULT_SHOW_TARGETS;
 
   // HUD state
   private colonyFood = 0;

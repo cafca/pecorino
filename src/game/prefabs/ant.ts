@@ -46,7 +46,13 @@ export function createAnt(world: IWorld, config: AntConfig) {
   AntState.stateTimer[eid] = 0;
   Age.currentAge[eid] = config.initialAge ?? Math.random() * 0.5 * ANT_MAX_AGE;
   Age.maxAge[eid] = ANT_MAX_AGE;
-  TargetVisualization.visible[eid] = config.showTargets ? 1 : 0;
+
+  // Only set target visualization for non-player ants
+  if (!config.isPlayer) {
+    TargetVisualization.visible[eid] = config.showTargets ? 1 : 0;
+  } else {
+    TargetVisualization.visible[eid] = 0;
+  }
 
   return eid;
 }
