@@ -301,10 +301,10 @@ export class Game {
     if (diff > 0) {
       // Add ants
       for (let i = 0; i < diff; i++) {
-        const radius = Math.random() * 300;
+        const radius = Math.random() * 20;
         const angle = Math.random() * Math.PI * 2;
-        const x = Math.cos(angle) * radius;
-        const y = Math.sin(angle) * radius;
+        const x = Math.cos(angle) * radius + WORLD_WIDTH / 2;
+        const y = Math.sin(angle) * radius + WORLD_HEIGHT / 2;
         this.createAnt(x, y, false);
       }
     } else if (diff < 0) {
