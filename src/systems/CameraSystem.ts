@@ -2,6 +2,7 @@ import { defineQuery } from "bitecs";
 import { Camera } from "../game/components/Camera";
 import { Container } from "pixi.js";
 import { Game } from "../game/game";
+import { ZOOM_LERP_FACTOR } from "@/game/constants";
 
 declare const game: Game;
 
@@ -9,6 +10,12 @@ export const CameraSystem = (gameContainer: Container) => {
   const cameraQuery = defineQuery([Camera]);
   let lastMouseX = 0;
   let lastMouseY = 0;
+  let targetZoom = 1; // Target zoom level
+  let zoomMouseX = 0;
+  let zoomMouseY = 0;
+  let zoomWorldX = 0;
+  let zoomWorldY = 0;
+  let isZooming = false;
 
   // Add event listeners for camera controls
   window.addEventListener("wheel", (e) => {
@@ -18,20 +25,14 @@ export const CameraSystem = (gameContainer: Container) => {
     const camera = entities[0];
     const zoomSpeed = 0.1;
     const zoomDelta = -Math.sign(e.deltaY) * zoomSpeed;
-    const newZoom = Math.max(0.1, Math.min(5, Camera.zoom[camera] + zoomDelta));
+    targetZoom = Math.max(0.1, Math.min(5, targetZoom + zoomDelta));
 
-    // Calculate mouse position in world space before zoom
-    const mouseX = e.clientX;
-    const mouseY = e.clientY;
-    const worldX = (mouseX - Camera.x[camera]) / Camera.zoom[camera];
-    const worldY = (mouseY - Camera.y[camera]) / Camera.zoom[camera];
-
-    // Update zoom
-    Camera.zoom[camera] = newZoom;
-
-    // Adjust camera position to zoom towards mouse position
-    Camera.x[camera] = mouseX - worldX * newZoom;
-    Camera.y[camera] = mouseY - worldY * newZoom;
+    // Store mouse and world positions for smooth zooming
+    zoomMouseX = e.clientX;
+    zoomMouseY = e.clientY;
+    zoomWorldX = (zoomMouseX - Camera.x[camera]) / Camera.zoom[camera];
+    zoomWorldY = (zoomMouseY - Camera.y[camera]) / Camera.zoom[camera];
+    isZooming = true;
   });
 
   window.addEventListener("mousedown", (e) => {
@@ -88,8 +89,24 @@ export const CameraSystem = (gameContainer: Container) => {
 
     const camera = entities[0];
 
+    // Smoothly interpolate current zoom to target zoom
+    const currentZoom = Camera.zoom[camera];
+    const newZoom = currentZoom + (targetZoom - currentZoom) * ZOOM_LERP_FACTOR;
+    Camera.zoom[camera] = newZoom;
+
+    // Update camera position to zoom towards mouse position
+    if (isZooming) {
+      Camera.x[camera] = zoomMouseX - zoomWorldX * newZoom;
+      Camera.y[camera] = zoomMouseY - zoomWorldY * newZoom;
+
+      // If we're very close to the target zoom, stop updating position
+      if (Math.abs(newZoom - targetZoom) < 0.001) {
+        isZooming = false;
+      }
+    }
+
     // Apply camera transform to game container
     gameContainer.position.set(Camera.x[camera], Camera.y[camera]);
-    gameContainer.scale.set(Camera.zoom[camera]);
+    gameContainer.scale.set(newZoom);
   };
 };

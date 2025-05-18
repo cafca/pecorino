@@ -16,3 +16,6 @@ export const ANT_AGE_INCREMENT = 1; // How much to increment age per second
 // World dimensions
 export const WORLD_WIDTH = 960; // 30 tiles × 32 pixels
 export const WORLD_HEIGHT = 640; // 20 tiles × 32 pixels
+
+// Camera constants
+export const ZOOM_LERP_FACTOR = 0.55; // Adjust this value to control zoom smoothness (0-1)
