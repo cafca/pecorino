@@ -134,6 +134,9 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
   const pheromoneGraphics = new Graphics();
   pheromoneContainer.addChild(pheromoneGraphics);
 
+  // Add frame counter for pheromone visualization updates
+  let frameCounter = 0;
+
   return () => {
     // Handle new entities
     const newEntities = enter(world);
@@ -225,42 +228,49 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
       }
     }
 
-    // Update pheromone visualization
-    const grid = (window as { game?: { pheromoneGrid: PheromoneGrid } }).game
-      ?.pheromoneGrid;
-    if (grid) {
-      const resolution = grid.getResolution();
-      const width = grid.getGridWidth();
-      const height = grid.getGridHeight();
-      const gridData = grid.getGridData();
+    // Update pheromone visualization every 3 frames
+    frameCounter = (frameCounter + 1) % 3;
+    if (frameCounter === 0) {
+      const grid = (window as { game?: { pheromoneGrid: PheromoneGrid } }).game
+        ?.pheromoneGrid;
+      if (grid) {
+        const resolution = grid.getResolution();
+        const width = grid.getGridWidth();
+        const height = grid.getGridHeight();
+        const gridData = grid.getGridData();
 
-      // Clear previous pheromone visualization
-      pheromoneGraphics.clear();
+        // Clear previous pheromone visualization
+        pheromoneGraphics.clear();
 
-      // Draw pheromone trails using a heatmap-like approach
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          const index = y * width + x;
-          const strength = gridData[index];
+        // Draw pheromone trails using a more efficient approach
+        // Only draw points with significant pheromone values
+        const threshold = 0.1; // Only draw pheromones above this threshold
+        const step = 2; // Sample every 2nd point to reduce drawing calls
 
-          if (strength > 0) {
-            // Convert grid coordinates to world coordinates
-            const worldX = x / resolution;
-            const worldY = y / resolution;
+        for (let y = 0; y < height; y += step) {
+          for (let x = 0; x < width; x += step) {
+            const index = y * width + x;
+            const strength = gridData[index];
 
-            // Calculate color based on strength
-            const alpha = Math.min(strength, 1);
-            const color = 0x00ff00 + Math.floor(alpha * 0x0000ff); // Green to blue gradient
+            if (strength > threshold) {
+              // Convert grid coordinates to world coordinates
+              const worldX = x / resolution;
+              const worldY = y / resolution;
 
-            // Draw a larger circle for each pheromone point
-            pheromoneGraphics.beginFill(color, alpha * 0.5);
-            pheromoneGraphics.drawCircle(worldX, worldY, 5.0);
-            pheromoneGraphics.endFill();
+              // Calculate color based on strength
+              const alpha = Math.min(strength, 1);
+              const color = 0x00ff00 + Math.floor(alpha * 0x0000ff); // Green to blue gradient
+
+              // Draw a larger circle for each pheromone point
+              pheromoneGraphics.beginFill(color, alpha * 0.5);
+              pheromoneGraphics.drawCircle(worldX, worldY, 5.0);
+              pheromoneGraphics.endFill();
+            }
           }
         }
+      } else {
+        console.warn("No pheromone grid found in game instance");
       }
-    } else {
-      console.warn("No pheromone grid found in game instance");
     }
   };
 };
@@ -305,7 +315,14 @@ export const PheromoneFollowSystem =
       ForagerRole,
     ]);
 
+    // Add frame counter for sampling frequency control
+    let frameCounter = 0;
+
     return () => {
+      // Only sample every 3 frames to reduce CPU load
+      frameCounter = (frameCounter + 1) % 3;
+      if (frameCounter !== 0) return;
+
       const entities = query(world);
       for (const eid of entities) {
         if (ForagerRole.state[eid] === 0) {
@@ -314,7 +331,7 @@ export const PheromoneFollowSystem =
           const radius = PheromoneSensor.radius[eid];
           const sensitivity = PheromoneSensor.sensitivity[eid];
 
-          // Area-based sampling: sample all grid points within the sensor radius
+          // Optimize sampling pattern - use fewer samples in a spiral pattern
           let sumX = 0;
           let sumY = 0;
           let total = 0;
@@ -325,25 +342,28 @@ export const PheromoneFollowSystem =
             value: number;
           }[] = [];
 
-          // Sample in a disk around the ant
-          const step = 1; // 1 unit step for sampling
-          for (let dx = -radius; dx <= radius; dx += step) {
-            for (let dy = -radius; dy <= radius; dy += step) {
-              if (dx * dx + dy * dy <= radius * radius) {
-                const sampleX = x + dx;
-                const sampleY = y + dy;
-                const value = pheromoneGrid.sample(sampleX, sampleY);
-                samples.push({
-                  angle: Math.atan2(dy, dx),
-                  x: sampleX,
-                  y: sampleY,
-                  value,
-                });
-                sumX += dx * value;
-                sumY += dy * value;
-                total += value;
-              }
-            }
+          // Use a spiral sampling pattern with fewer points
+          const numSamples = 8; // Reduced from continuous sampling
+          for (let i = 0; i < numSamples; i++) {
+            const angle = (i / numSamples) * Math.PI * 2;
+            const distance = radius * (i / numSamples);
+            const dx = Math.cos(angle) * distance;
+            const dy = Math.sin(angle) * distance;
+
+            const sampleX = x + dx;
+            const sampleY = y + dy;
+            const value = pheromoneGrid.sample(sampleX, sampleY);
+
+            samples.push({
+              angle,
+              x: sampleX,
+              y: sampleY,
+              value,
+            });
+
+            sumX += dx * value;
+            sumY += dy * value;
+            total += value;
           }
 
           // Compute movement direction

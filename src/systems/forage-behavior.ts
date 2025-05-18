@@ -11,6 +11,7 @@ import { removeComponent, defineQuery } from "bitecs";
 import { Sprite } from "pixi.js";
 
 import type { IWorld } from "bitecs";
+import { PheromoneGrid } from "../game/pheromoneGrid";
 
 // Helper functions for ForageBehaviorSystem
 const findNearestFood = (x: number, y: number, foods: number[]) => {
@@ -97,37 +98,51 @@ const handleFindFoodState = (
       const remainingFood = foods.length - 1;
       console.log(`Food picked up! ${remainingFood} food items remaining.`);
     }
-  } else if (!isPlayer) {
-    const currentTime = Date.now();
-    const currentTarget = explorationTargets.get(ant);
-    const targetX = Target.x[ant];
-    const targetY = Target.y[ant];
+  }
 
-    // Check if we need a new exploration target
-    const needsNewTarget =
-      !currentTarget ||
-      currentTime - currentTarget.timestamp > 5000 || // Target expires after 5 seconds
-      Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2)) < 20; // Target reached
+  const currentTime = Date.now();
+  const currentTarget = explorationTargets.get(ant);
+  const targetX = Target.x[ant];
+  const targetY = Target.y[ant];
 
-    if (needsNewTarget) {
-      // If no food nearby, explore randomly
-      const exploreRadius = 200;
-      const angle = Math.random() * Math.PI * 2;
-      const distance = Math.random() * exploreRadius;
-      const newTargetX = x + Math.cos(angle) * distance;
-      const newTargetY = y + Math.sin(angle) * distance;
+  // Check if we need a new exploration target
+  const needsNewTarget =
+    !currentTarget ||
+    currentTime - currentTarget.timestamp > 5000 || // Target expires after 5 seconds
+    Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2)) < 20; // Target reached
 
-      Target.x[ant] = newTargetX;
-      Target.y[ant] = newTargetY;
-      Target.type[ant] = 2; // Exploration target
+  if (needsNewTarget) {
+    // If no food nearby, explore randomly within map bounds
+    const exploreRadius = 200;
+    const angle = Math.random() * Math.PI * 2;
+    const distance = Math.random() * exploreRadius;
 
-      // Store the new target and its timestamp
-      explorationTargets.set(ant, {
-        timestamp: currentTime,
-        targetX: newTargetX,
-        targetY: newTargetY,
-      });
+    // Calculate new target position
+    let newTargetX = x + Math.cos(angle) * distance;
+    let newTargetY = y + Math.sin(angle) * distance;
+
+    // Get map bounds from pheromone grid
+    const grid = (window as { game?: { pheromoneGrid: PheromoneGrid } }).game
+      ?.pheromoneGrid;
+    if (grid) {
+      const halfWidth = grid.getGridWidth() / (2 * grid.getResolution());
+      const halfHeight = grid.getGridHeight() / (2 * grid.getResolution());
+
+      // Clamp target position to map bounds
+      newTargetX = Math.max(-halfWidth, Math.min(halfWidth, newTargetX));
+      newTargetY = Math.max(-halfHeight, Math.min(halfHeight, newTargetY));
     }
+
+    Target.x[ant] = newTargetX;
+    Target.y[ant] = newTargetY;
+    Target.type[ant] = 2; // Exploration target
+
+    // Store the new target and its timestamp
+    explorationTargets.set(ant, {
+      timestamp: currentTime,
+      targetX: newTargetX,
+      targetY: newTargetY,
+    });
   }
 };
 
