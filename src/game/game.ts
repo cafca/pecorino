@@ -11,8 +11,6 @@ import {
   Velocity,
   Sprite,
   PlayerControlled,
-  PheromoneEmitter,
-  PheromoneSensor,
   ForagerRole,
   Target,
   Food,
@@ -24,14 +22,10 @@ import {
   InputSystem,
   MovementSystem,
   RenderSystem,
-  PheromoneDepositSystem,
-  PheromoneFollowSystem,
   ForageBehaviorSystem,
   AntStateSystem,
   AgingSystem,
 } from "../systems/systems";
-import { PheromoneGrid } from "./pheromoneGrid";
-import { Graphics } from "pixi.js";
 import { ANT_MAX_AGE } from "./constants";
 
 export class Game {
@@ -41,12 +35,9 @@ export class Game {
   private inputSystem: () => void;
   private movementSystem: (delta: number) => void;
   private renderSystem: () => void;
-  private pheromoneDepositSystem: () => void;
-  private pheromoneFollowSystem: () => void;
   private forageBehaviorSystem: () => void;
   private antStateSystem: () => void;
   private agingSystem: (delta: number) => void;
-  private pheromoneGrid: PheromoneGrid;
   private playerQuery = defineQuery([Position, PlayerControlled]);
   private antQuery = defineQuery([Position, ForagerRole]);
   private simulationSpeed = 1;
@@ -60,20 +51,9 @@ export class Game {
 
   private constructor(app: Application) {
     this.app = app;
-    // Initialize pheromone grid with window dimensions
-    this.pheromoneGrid = new PheromoneGrid(
-      window.innerWidth,
-      window.innerHeight
-    );
     this.inputSystem = InputSystem(this.world);
     this.movementSystem = MovementSystem(this.world);
     this.renderSystem = RenderSystem(this.app)(this.world);
-    this.pheromoneDepositSystem = PheromoneDepositSystem(this.pheromoneGrid)(
-      this.world
-    );
-    this.pheromoneFollowSystem = PheromoneFollowSystem(this.pheromoneGrid)(
-      this.world
-    );
     this.forageBehaviorSystem = ForageBehaviorSystem(this.world);
     this.antStateSystem = AntStateSystem(this.world);
     this.agingSystem = AgingSystem(this.world);
@@ -96,12 +76,6 @@ export class Game {
 
     // Load all assets
     await Assets.load(["ant", "food", "nest"]);
-
-    // Create circle texture for pheromones
-    const circleGraphics = new Graphics();
-    circleGraphics.circle(0, 0, 10).fill(0xffffff);
-    const circleTexture = this.app.renderer.generateTexture(circleGraphics);
-    Assets.cache.set("circle", circleTexture);
   }
 
   public createAnt(
@@ -116,8 +90,6 @@ export class Game {
     addComponent(this.world, Velocity, ant);
     addComponent(this.world, Sprite, ant);
     addComponent(this.world, PlayerControlled, ant);
-    addComponent(this.world, PheromoneEmitter, ant);
-    addComponent(this.world, PheromoneSensor, ant);
     addComponent(this.world, ForagerRole, ant);
     addComponent(this.world, Target, ant);
     addComponent(this.world, AntState, ant);
@@ -134,10 +106,6 @@ export class Game {
     Sprite.width[ant] = 32;
     Sprite.height[ant] = 32;
     Sprite.scale[ant] = 0.1;
-    PheromoneEmitter.strength[ant] = 1.0;
-    PheromoneEmitter.isEmitting[ant] = 0;
-    PheromoneSensor.radius[ant] = 50;
-    PheromoneSensor.sensitivity[ant] = 0.5;
     ForagerRole.state[ant] = 0;
     ForagerRole.foodCarried[ant] = 0;
     Target.x[ant] = 0;
@@ -219,36 +187,32 @@ export class Game {
       const delta = (currentTime - this.lastTime) / 1000;
       this.lastTime = currentTime;
 
-      // Apply simulation speed
-      const adjustedDelta = delta * this.simulationSpeed;
+      if (delta > 0) {
+        const adjustedDelta = delta * this.simulationSpeed;
 
-      this.inputSystem();
-      this.movementSystem(adjustedDelta);
-      this.pheromoneDepositSystem();
-      this.pheromoneFollowSystem();
-      this.forageBehaviorSystem();
-      this.antStateSystem();
-      this.agingSystem(adjustedDelta);
-      this.pheromoneGrid.update(adjustedDelta);
-      this.renderSystem();
+        this.inputSystem();
+        this.movementSystem(adjustedDelta);
+        this.forageBehaviorSystem();
+        this.antStateSystem();
+        this.agingSystem(adjustedDelta);
+        this.renderSystem();
 
-      // Handle food spawning
-      this.spawnTimer += adjustedDelta;
-      if (this.spawnTimer >= this.spawnRate) {
-        this.spawnTimer = 0;
-        this.spawnRandomFood();
+        // Handle food spawning
+        this.spawnTimer += adjustedDelta;
+        if (this.spawnTimer >= this.spawnRate) {
+          this.spawnTimer = 0;
+          this.spawnRandomFood();
+        }
+
+        // Update HUD state
+        this.updateHUDState();
       }
-
-      // Update HUD state
-      this.updateHUDState();
     });
   }
 
   private initResizeHandler() {
     window.addEventListener("resize", () => {
       this.app.renderer.resize(window.innerWidth, window.innerHeight);
-      // Update pheromone grid size to match new window dimensions
-      this.pheromoneGrid.resize(window.innerWidth, window.innerHeight);
     });
   }
 
@@ -321,11 +285,6 @@ export class Game {
     };
   }
 
-  // Test helper method to access pheromoneGrid
-  public getPheromoneGridForTesting(): PheromoneGrid {
-    return this.pheromoneGrid;
-  }
-
   public toggleSimulationSpeed() {
     this.simulationSpeed = this.simulationSpeed === 1 ? 4 : 1;
   }
@@ -358,8 +317,6 @@ export class Game {
         removeComponent(this.world, Velocity, ant);
         removeComponent(this.world, Sprite, ant);
         removeComponent(this.world, PlayerControlled, ant);
-        removeComponent(this.world, PheromoneEmitter, ant);
-        removeComponent(this.world, PheromoneSensor, ant);
         removeComponent(this.world, ForagerRole, ant);
         removeComponent(this.world, Target, ant);
         removeComponent(this.world, AntState, ant);

@@ -4,13 +4,6 @@ A real-time ant colony simulation game where you control an ant and interact wit
 
 ## Features
 
-### Pheromone System
-
-- **Trail Creation**: Ants leave pheromone trails as they move
-- **Trail Following**: AI ants can detect and follow pheromone trails
-- **Trail Decay**: Pheromones gradually fade over time
-- **Grid-based System**: Efficient pheromone tracking using a tile-based grid
-
 ### Food System
 
 - **Food Collection**: Ants can pick up and carry food

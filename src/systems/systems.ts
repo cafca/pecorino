@@ -1,12 +1,4 @@
-import {
-  createWorld,
-  addComponent,
-  addEntity,
-  defineQuery,
-  enterQuery,
-  exitQuery,
-  removeComponent,
-} from "bitecs";
+import { defineQuery, enterQuery, exitQuery, removeComponent } from "bitecs";
 import type { IWorld } from "bitecs";
 import {
   Application,
@@ -21,17 +13,12 @@ import {
   Velocity,
   Sprite,
   PlayerControlled,
-  PheromoneEmitter,
-  PheromoneSensor,
   ForagerRole,
   Target,
-  Food,
   AntState,
-  Nest,
   Age,
   AntStateType,
 } from "../game/components";
-import { PheromoneGrid } from "../game/pheromoneGrid";
 import { ANT_AGE_INCREMENT } from "../game/constants";
 
 // Input System
@@ -74,38 +61,47 @@ export const MovementSystem = (world: IWorld) => {
 
   return (delta: number) => {
     const entities = query(world);
-    const grid = (window as { game?: { pheromoneGrid: PheromoneGrid } }).game
-      ?.pheromoneGrid;
+    const gridDimensionX = window.innerWidth;
+    const gridDimensionY = window.innerHeight;
 
     // If no grid is available, use default boundaries
-    const halfWidth = grid
-      ? grid.getGridWidth() / (2 * grid.getResolution())
-      : 400;
-    const halfHeight = grid
-      ? grid.getGridHeight() / (2 * grid.getResolution())
-      : 300;
+    const distanceToEdgeX = gridDimensionX / 2;
+    const distanceToEdgeY = gridDimensionY / 2;
 
     for (const eid of entities) {
+      // If the ant is an NPC and has a current target, set
+      // its velocity towards the target.
+      if (!PlayerControlled.isPlayer[eid] && Target.x[eid] !== undefined) {
+        const dx = Target.x[eid] - Position.x[eid];
+        const dy = Target.y[eid] - Position.y[eid];
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > 0) {
+          const speed = PlayerControlled.speed[eid] || 1;
+          Velocity.x[eid] = (dx / distance) * speed;
+          Velocity.y[eid] = (dy / distance) * speed;
+        }
+      }
       // Calculate new position
       const newX = Position.x[eid] + Velocity.x[eid] * delta;
       const newY = Position.y[eid] + Velocity.y[eid] * delta;
 
       // Check boundaries and adjust if needed
-      if (newX < -halfWidth) {
-        Position.x[eid] = -halfWidth;
+      if (newX < -distanceToEdgeX) {
+        Position.x[eid] = -distanceToEdgeX;
         Velocity.x[eid] = 0;
-      } else if (newX > halfWidth) {
-        Position.x[eid] = halfWidth;
+      } else if (newX > distanceToEdgeX) {
+        Position.x[eid] = distanceToEdgeX;
         Velocity.x[eid] = 0;
       } else {
         Position.x[eid] = newX;
       }
 
-      if (newY < -halfHeight) {
-        Position.y[eid] = -halfHeight;
+      if (newY < -distanceToEdgeY) {
+        Position.y[eid] = -distanceToEdgeY;
         Velocity.y[eid] = 0;
-      } else if (newY > halfHeight) {
-        Position.y[eid] = halfHeight;
+      } else if (newY > distanceToEdgeY) {
+        Position.y[eid] = distanceToEdgeY;
         Velocity.y[eid] = 0;
       } else {
         Position.y[eid] = newY;
@@ -122,9 +118,7 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
   const sprites = new Map<number, PixiSprite>();
   const labels = new Map<number, Text>();
   const container = new Container();
-  const pheromoneContainer = new Container();
   app.stage.addChild(container);
-  app.stage.addChild(pheromoneContainer);
 
   // Add sand-colored background
   const background = new Graphics();
@@ -140,15 +134,6 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
 
   // Center the containers initially
   container.position.set(app.screen.width / 2, app.screen.height / 2);
-  pheromoneContainer.position.set(app.screen.width / 2, app.screen.height / 2);
-  pheromoneContainer.scale.set(1);
-
-  // Create a graphics object for pheromone visualization
-  const pheromoneGraphics = new Graphics();
-  pheromoneContainer.addChild(pheromoneGraphics);
-
-  // Add frame counter for pheromone visualization updates
-  let frameCounter = 0;
 
   return () => {
     // Handle new entities
@@ -166,6 +151,7 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
           texture = "nest";
           break;
         default:
+          console.warn(`Unknown texture for entity ${eid}`);
           texture = "ant";
       }
       const sprite = new PixiSprite(Assets.get(texture));
@@ -173,7 +159,7 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
       sprite.scale.set(Sprite.scale[eid]);
 
       // Tint ants based on their state
-      if (ForagerRole.state[eid] === 1) {
+      if (ForagerRole.foodCarried[eid] === 1) {
         sprite.tint = 0xff0000; // Red tint for ants carrying food
       } else {
         sprite.tint = 0xffffff; // White (no tint) for ants searching for food
@@ -245,184 +231,11 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
         }
       }
     }
-
-    // Update pheromone visualization every 3 frames
-    frameCounter = (frameCounter + 1) % 3;
-    if (frameCounter === 0) {
-      const grid = (window as { game?: { pheromoneGrid: PheromoneGrid } }).game
-        ?.pheromoneGrid;
-      if (grid) {
-        const resolution = grid.getResolution();
-        const width = grid.getGridWidth();
-        const height = grid.getGridHeight();
-        const gridData = grid.getGridData();
-
-        // Clear previous pheromone visualization
-        pheromoneGraphics.clear();
-
-        // Draw pheromone trails using a more efficient approach
-        // Only draw points with significant pheromone values
-        const threshold = 0.1; // Only draw pheromones above this threshold
-        const step = 2; // Sample every 2nd point to reduce drawing calls
-
-        for (let y = 0; y < height; y += step) {
-          for (let x = 0; x < width; x += step) {
-            const index = y * width + x;
-            const strength = gridData[index];
-
-            if (strength > threshold) {
-              // Convert grid coordinates to world coordinates
-              const worldX = x / resolution;
-              const worldY = y / resolution;
-
-              // Calculate color based on strength
-              const alpha = Math.min(strength, 1);
-              const color = 0x00ff00 + Math.floor(alpha * 0x0000ff); // Green to blue gradient
-
-              // Draw a larger circle for each pheromone point
-              pheromoneGraphics.beginFill(color, alpha * 0.5);
-              pheromoneGraphics.drawCircle(worldX, worldY, 5.0);
-              pheromoneGraphics.endFill();
-            }
-          }
-        }
-      } else {
-        console.warn("No pheromone grid found in game instance");
-      }
-    }
   };
 };
-
-// Pheromone Deposit System
-export const PheromoneDepositSystem =
-  (pheromoneGrid: PheromoneGrid) => (world: IWorld) => {
-    const query = defineQuery([Position, PheromoneEmitter, ForagerRole]);
-
-    return () => {
-      const entities = query(world);
-      for (const eid of entities) {
-        if (PheromoneEmitter.isEmitting[eid] && ForagerRole.state[eid] === 1) {
-          const x = Position.x[eid];
-          const y = Position.y[eid];
-          pheromoneGrid.deposit(x, y, 1.0);
-        }
-      }
-    };
-  };
-
-// Debug info type for pheromone following
-export type PheromoneFollowDebugInfo = {
-  eid: number;
-  position: { x: number; y: number };
-  samples: { angle: number; x: number; y: number; value: number }[];
-  bestDirection: { x: number; y: number; angle: number; value: number };
-  velocity: { x: number; y: number };
-};
-
-// Pheromone Follow System with optional debug callback
-export const PheromoneFollowSystem =
-  (
-    pheromoneGrid: PheromoneGrid,
-    debugCb?: (info: PheromoneFollowDebugInfo) => void,
-    skipFrames: boolean = true // default: skip frames (production)
-  ) =>
-  (world: IWorld) => {
-    const query = defineQuery([
-      Position,
-      Velocity,
-      PheromoneSensor,
-      ForagerRole,
-    ]);
-
-    // Add frame counter for sampling frequency control
-    let frameCounter = 0;
-
-    return () => {
-      // Only sample every 3 frames to reduce CPU load (unless disabled for tests)
-      if (skipFrames) {
-        frameCounter = (frameCounter + 1) % 3;
-        if (frameCounter !== 0) return;
-      }
-
-      const entities = query(world);
-      for (const eid of entities) {
-        if (ForagerRole.state[eid] === 0) {
-          const x = Position.x[eid];
-          const y = Position.y[eid];
-          const radius = PheromoneSensor.radius[eid];
-          const sensitivity = PheromoneSensor.sensitivity[eid];
-
-          // Optimize sampling pattern - use fewer samples in a spiral pattern
-          let sumX = 0;
-          let sumY = 0;
-          let total = 0;
-          const samples: {
-            angle: number;
-            x: number;
-            y: number;
-            value: number;
-          }[] = [];
-
-          // Use a spiral sampling pattern with fewer points
-          const numSamples = 8; // Reduced from continuous sampling
-          for (let i = 0; i < numSamples; i++) {
-            const angle = (i / numSamples) * Math.PI * 2;
-            const distance = radius * (i / numSamples);
-            const dx = Math.cos(angle) * distance;
-            const dy = Math.sin(angle) * distance;
-
-            const sampleX = x + dx;
-            const sampleY = y + dy;
-            const value = pheromoneGrid.sample(sampleX, sampleY);
-
-            samples.push({
-              angle,
-              x: sampleX,
-              y: sampleY,
-              value,
-            });
-
-            sumX += dx * value;
-            sumY += dy * value;
-            total += value;
-          }
-
-          // Compute movement direction
-          let vx = 0;
-          let vy = 0;
-          if (total > 0 && (sumX !== 0 || sumY !== 0)) {
-            // Normalize the gradient direction
-            const len = Math.sqrt(sumX * sumX + sumY * sumY);
-            vx = (sumX / len) * 100 * sensitivity;
-            vy = (sumY / len) * 100 * sensitivity;
-          }
-          Velocity.x[eid] = vx;
-          Velocity.y[eid] = vy;
-
-          // For debug
-          if (debugCb) {
-            debugCb({
-              eid,
-              position: { x, y },
-              samples,
-              bestDirection: {
-                x: sumX,
-                y: sumY,
-                angle: Math.atan2(sumY, sumX),
-                value: total,
-              },
-              velocity: { x: vx, y: vy },
-            });
-          }
-        }
-      }
-    };
-  };
-
-export { ForageBehaviorSystem } from "./forage-behavior";
 
 export const AntStateSystem = (world: IWorld) => {
-  const query = defineQuery([
+  const foragerEntityQuery = defineQuery([
     AntState,
     Position,
     Velocity,
@@ -431,8 +244,8 @@ export const AntStateSystem = (world: IWorld) => {
   ]);
 
   return () => {
-    const entities = query(world);
-    for (const eid of entities) {
+    const foragerEntities = foragerEntityQuery(world);
+    for (const eid of foragerEntities) {
       // State transition logic
       if (PlayerControlled.isPlayer[eid] === 1) {
         AntState.currentState[eid] = AntStateType.PLAYER_CONTROLLED;
@@ -442,15 +255,7 @@ export const AntStateSystem = (world: IWorld) => {
         // Keep PICKING_UP_FOOD state until food is picked up or lost
         // The ForageBehaviorSystem will handle transitioning out of this state
       } else if (Velocity.x[eid] !== 0 || Velocity.y[eid] !== 0) {
-        const pheromoneValue =
-          (
-            window as { game?: { pheromoneGrid: PheromoneGrid } }
-          ).game?.pheromoneGrid?.sample(Position.x[eid], Position.y[eid]) || 0;
-
-        AntState.currentState[eid] =
-          pheromoneValue > 0
-            ? AntStateType.FOLLOWING_TRAIL
-            : AntStateType.EXPLORING;
+        AntState.currentState[eid] = AntStateType.EXPLORING;
       } else {
         AntState.currentState[eid] = AntStateType.IDLE;
       }
@@ -484,8 +289,6 @@ export const AgingSystem = (world: IWorld) => {
           removeComponent(world, Velocity, eid);
           removeComponent(world, Sprite, eid);
           removeComponent(world, PlayerControlled, eid);
-          removeComponent(world, PheromoneEmitter, eid);
-          removeComponent(world, PheromoneSensor, eid);
           removeComponent(world, ForagerRole, eid);
           removeComponent(world, Target, eid);
           removeComponent(world, AntState, eid);
@@ -495,3 +298,5 @@ export const AgingSystem = (world: IWorld) => {
     }
   };
 };
+
+export { ForageBehaviorSystem } from "./forage-behavior";

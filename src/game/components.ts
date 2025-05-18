@@ -22,17 +22,6 @@ export const PlayerControlled = defineComponent({
   isPlayer: Types.ui8, // 1 for player, 0 for AI
 });
 
-// Neue Komponenten für das Pheromon-System
-export const PheromoneEmitter = defineComponent({
-  strength: Types.f32,
-  isEmitting: Types.ui8,
-});
-
-export const PheromoneSensor = defineComponent({
-  radius: Types.f32,
-  sensitivity: Types.f32,
-});
-
 export const ForagerRole = defineComponent({
   state: Types.ui8, // 0: FindFood, 1: CarryFood
   foodCarried: Types.ui8,
@@ -55,7 +44,6 @@ export const Nest = defineComponent({
 export enum AntStateType {
   IDLE = 0,
   EXPLORING = 1,
-  FOLLOWING_TRAIL = 2,
   CARRYING_FOOD = 3,
   RETURNING_TO_NEST = 4,
   PLAYER_CONTROLLED = 5,

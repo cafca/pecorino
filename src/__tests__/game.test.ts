@@ -1,11 +1,9 @@
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
 import type { IWorld } from "bitecs";
 import {
   Position,
   Velocity,
   Sprite,
-  PheromoneEmitter,
-  PheromoneSensor,
   ForagerRole,
   Food,
   Nest,
@@ -13,7 +11,6 @@ import {
 } from "../game/components";
 import { createWorld, addComponent, addEntity, defineQuery } from "bitecs";
 import { MovementSystem, ForageBehaviorSystem } from "../systems/systems";
-import { PheromoneGrid } from "../game/pheromoneGrid";
 
 describe("Game Components", () => {
   describe("Position", () => {
@@ -39,20 +36,6 @@ describe("Game Components", () => {
     });
   });
 
-  describe("PheromoneEmitter", () => {
-    it("should store pheromone emission properties", () => {
-      expect(PheromoneEmitter.strength).toBeDefined();
-      expect(PheromoneEmitter.isEmitting).toBeDefined();
-    });
-  });
-
-  describe("PheromoneSensor", () => {
-    it("should store pheromone sensing properties", () => {
-      expect(PheromoneSensor.radius).toBeDefined();
-      expect(PheromoneSensor.sensitivity).toBeDefined();
-    });
-  });
-
   describe("ForagerRole", () => {
     it("should store ant foraging state", () => {
       expect(ForagerRole.state).toBeDefined();
@@ -70,19 +53,10 @@ describe("Game Components", () => {
 describe("MovementSystem", () => {
   let world: IWorld;
   let movementSystem: (delta: number) => void;
-  let grid: PheromoneGrid;
 
   beforeEach(() => {
     world = createWorld();
-    grid = new PheromoneGrid(800, 600); // 800x600 window
-    (window as { game?: { pheromoneGrid: PheromoneGrid } }).game = {
-      pheromoneGrid: grid,
-    };
     movementSystem = MovementSystem(world);
-  });
-
-  afterEach(() => {
-    delete (window as { game?: { pheromoneGrid: PheromoneGrid } }).game;
   });
 
   it("should update position based on velocity and delta time", () => {
