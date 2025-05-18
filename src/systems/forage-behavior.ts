@@ -23,6 +23,7 @@ import {
   ANT_SPAWN_COST,
   ANT_MAX_AGE,
 } from "../game/constants";
+import type { Game } from "@/game/game";
 
 // Track exploration targets and their timestamps
 const explorationTargets = new Map<
@@ -100,15 +101,15 @@ const handleFindFoodState = (
     if (needsNewTarget) {
       // If no food nearby, explore randomly within map bounds
       const angle = Math.random() * Math.PI * 2;
-      const distance = Math.random() * EXPLORATION_RADIUS;
+      const distance = Math.random() * (EXPLORATION_RADIUS - 50) + 50; // Min distance of 50
 
       // Calculate new target position
       let newTargetX = x + Math.cos(angle) * distance;
       let newTargetY = y + Math.sin(angle) * distance;
 
-      // Use fixed map bounds
-      const halfWidth = 400;
-      const halfHeight = 300;
+      // Use dynamic map bounds from game
+      const halfWidth = (window.game as Game)?.mapWidth / 2 || 400;
+      const halfHeight = (window.game as Game)?.mapHeight / 2 || 300;
 
       // Clamp target position to map bounds
       newTargetX = Math.max(-halfWidth, Math.min(halfWidth, newTargetX));
