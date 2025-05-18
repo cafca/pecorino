@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Game } from "./game/game";
 import { HUD } from "./game/HUD";
+import { LiveGraph } from "./game/LiveGraph";
 
 declare global {
   interface Window {
@@ -113,6 +114,10 @@ export const App: React.FC = () => {
           onSpeedToggle={handleSpeedToggle}
           onSpawnRateChange={handleSpawnRateChange}
           onAntCountChange={handleAntCountChange}
+        />
+        <LiveGraph
+          foodInWorld={hudState.foodInWorld}
+          antCount={hudState.antCount}
         />
       </div>
     </div>
