@@ -2,6 +2,7 @@ import React from "react";
 
 interface HUDProps {
   foodCount: number;
+  foodInWorld: number;
   antCount: number;
   simulationSpeed: number;
   spawnRate: number;
@@ -12,6 +13,7 @@ interface HUDProps {
 
 export const HUD: React.FC<HUDProps> = ({
   foodCount,
+  foodInWorld,
   antCount,
   simulationSpeed,
   spawnRate,
@@ -46,6 +48,15 @@ export const HUD: React.FC<HUDProps> = ({
           }}
         >
           Food in Colony: {foodCount}
+        </div>
+        <div
+          style={{
+            color: "white",
+            textShadow: "2px 2px 2px black",
+            marginBottom: 10,
+          }}
+        >
+          Food in World: {foodInWorld}
         </div>
         <div
           style={{

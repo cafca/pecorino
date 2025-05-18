@@ -12,6 +12,7 @@ export const App: React.FC = () => {
   const [game, setGame] = useState<Game | null>(null);
   const [hudState, setHudState] = useState({
     foodCount: 0,
+    foodInWorld: 0,
     antCount: 0,
     simulationSpeed: 1,
     spawnRate: 5,
@@ -105,6 +106,7 @@ export const App: React.FC = () => {
       >
         <HUD
           foodCount={hudState.foodCount}
+          foodInWorld={hudState.foodInWorld}
           antCount={hudState.antCount}
           simulationSpeed={hudState.simulationSpeed}
           spawnRate={hudState.spawnRate}

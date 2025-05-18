@@ -11,7 +11,7 @@ import {
   Nest,
   Target,
 } from "../game/components";
-import { createWorld, addComponent, addEntity } from "bitecs";
+import { createWorld, addComponent, addEntity, defineQuery } from "bitecs";
 import { MovementSystem, ForageBehaviorSystem } from "../systems/systems";
 import { PheromoneGrid } from "../game/pheromoneGrid";
 
@@ -242,10 +242,79 @@ describe("HUD", () => {
     // Get HUD state (simulate)
     const hudState = {
       foodCount: Nest.foodCount[nest],
+      foodInWorld: 0,
       antCount: 1,
       simulationSpeed: 1,
       spawnRate: 5,
     };
     expect(hudState.foodCount).toBe(1);
+  });
+});
+
+describe("Food in World", () => {
+  let world: IWorld;
+
+  beforeEach(() => {
+    world = createWorld();
+  });
+
+  it("increases food count when new food is spawned", () => {
+    // Create initial food
+    const food = addEntity(world);
+    addComponent(world, Position, food);
+    addComponent(world, Food, food);
+    Position.x[food] = 100;
+    Position.y[food] = 100;
+    Food.amount[food] = 1;
+
+    const foodQuery = defineQuery([Food]);
+    const initialFoodCount = foodQuery(world).length;
+
+    // Spawn new food
+    const newFood = addEntity(world);
+    addComponent(world, Position, newFood);
+    addComponent(world, Food, newFood);
+    Position.x[newFood] = 200;
+    Position.y[newFood] = 200;
+    Food.amount[newFood] = 1;
+
+    const newFoodCount = foodQuery(world).length;
+    expect(newFoodCount).toBe(initialFoodCount + 1);
+  });
+
+  it("decreases food count when ant picks up food", () => {
+    // Create food
+    const food = addEntity(world);
+    addComponent(world, Position, food);
+    addComponent(world, Food, food);
+    Position.x[food] = 100;
+    Position.y[food] = 100;
+    Food.amount[food] = 1;
+
+    const foodQuery = defineQuery([Food]);
+    const initialFoodCount = foodQuery(world).length;
+
+    // Create an ant near food
+    const ant = addEntity(world);
+    addComponent(world, Position, ant);
+    addComponent(world, ForagerRole, ant);
+    addComponent(world, Target, ant);
+    addComponent(world, Velocity, ant);
+
+    Position.x[ant] = Position.x[food];
+    Position.y[ant] = Position.y[food];
+
+    // Set ant to search for food
+    ForagerRole.state[ant] = 0; // Searching for food
+    Target.x[ant] = Position.x[food];
+    Target.y[ant] = Position.y[food];
+    Target.type[ant] = 0;
+
+    // Run forage behavior system to collect food
+    const forageSystem = ForageBehaviorSystem(world);
+    forageSystem();
+
+    const remainingFoodCount = foodQuery(world).length;
+    expect(remainingFoodCount).toBe(initialFoodCount - 1);
   });
 });

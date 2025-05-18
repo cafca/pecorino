@@ -51,6 +51,7 @@ export class Game {
 
   // HUD state
   private colonyFood = 0;
+  private foodInWorld = 0;
   private antCount = 0;
 
   private constructor(app: Application) {
@@ -282,18 +283,23 @@ export class Game {
   }
 
   private updateHUDState() {
-    // Count ants
-    this.antCount = this.antQuery(this.world).length;
-
-    // Get food count from nest
+    // Count food in nest
     const nestQuery = defineQuery([Nest]);
     const nests = nestQuery(this.world);
     this.colonyFood = nests.length > 0 ? Nest.foodCount[nests[0]] : 0;
+
+    // Count food in world
+    const foodQuery = defineQuery([Food]);
+    this.foodInWorld = foodQuery(this.world).length;
+
+    // Count ants
+    this.antCount = this.antQuery(this.world).length;
   }
 
   public getHUDState() {
     return {
       foodCount: this.colonyFood,
+      foodInWorld: this.foodInWorld,
       antCount: this.antCount,
       simulationSpeed: this.simulationSpeed,
       spawnRate: this.spawnRate,

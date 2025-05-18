@@ -86,16 +86,14 @@ test.describe("game", () => {
     });
 
     test("clicking the game container creates food", async ({ page }) => {
-      // Get initial food count and set spawn rate to 0
-      const initialFoodCount = await page.evaluate(() => {
+      // Get initial food in world and set spawn rate to 0
+      const initialFoodInWorld = await page.evaluate(() => {
         // @ts-expect-error window.game is not typed
         // eslint-disable-next-line no-undef
         const game: Game = window.game;
-        game.setSpawnRate(0);
-        return game.getHUDState().foodCount;
+        game.setSpawnRate(Infinity);
+        return game.getHUDState().foodInWorld;
       });
-
-      expect(initialFoodCount).toBe(0);
 
       // Click in the center of the game container
       const container = page.locator("#game-container").first();
@@ -105,23 +103,31 @@ test.describe("game", () => {
       const posX = box.x + box.width / 2;
       const posY = box.y + box.height / 2;
 
-      console.log(`Clicking at ${posX}, ${posY}`);
-
       await page.mouse.click(posX, posY);
 
       // Wait a bit for the food to be created
       await page.waitForTimeout(100);
 
-      // Get new food count
-      const newFoodCount = await page.evaluate(() => {
+      // Get new food in world
+      const newFoodInWorld = await page.evaluate(() => {
         // @ts-expect-error window.game is not typed
         // eslint-disable-next-line no-undef
-        const game: Game = window.game;
-        return game.getHUDState().foodCount;
+        const game = window.game;
+        return game.getHUDState().foodInWorld;
       });
 
-      // Food count should have increased
-      expect(newFoodCount).toBeGreaterThan(initialFoodCount);
+      // Food in world should have increased
+      expect(newFoodInWorld).toBe(initialFoodInWorld + 1);
+    });
+
+    test("initial food in world is 5", async ({ page }) => {
+      const foodInWorld = await page.evaluate(() => {
+        // @ts-expect-error window.game is not typed
+        // eslint-disable-next-line no-undef
+        const game = window.game;
+        return game.getHUDState().foodInWorld;
+      });
+      expect(foodInWorld).toBe(5);
     });
   });
 });
