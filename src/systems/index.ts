@@ -1,9 +1,9 @@
-import { InputSystem } from "./input";
-import { MovementSystem } from "./movement";
-import { RenderSystem } from "./render";
-import { ForageBehaviorSystem } from "./forage-behavior";
-import { AntStateSystem } from "./ant-state";
-import { AgingSystem } from "./aging";
+import { InputSystem } from "./InputSystem";
+import { MovementSystem } from "./MovementSystem";
+import { RenderSystem } from "./RenderSystem";
+import { ForageBehaviorSystem } from "./ForageBehaviorSystem";
+import { AntStateSystem } from "./AntStateSystem";
+import { AgingSystem } from "./AgingSystem";
 import { TargetVisualizationSystem } from "./TargetVisualizationSystem";
 
 export {

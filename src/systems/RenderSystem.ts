@@ -26,7 +26,8 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
   const exit = exitQuery(query);
   const sprites = new Map<number, PixiSprite>();
   const labels = new Map<number, Text>();
-  const container = new Container();
+
+  const container = app.stage.children[0] as Container;
 
   const createSprite = (eid: number) => {
     let texture;
@@ -149,7 +150,6 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
   };
 
   // Initialize
-  app.stage.addChild(container);
   container.position.set(0, 0);
 
   return () => {
