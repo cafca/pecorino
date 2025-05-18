@@ -29,7 +29,7 @@ import {
   AgingSystem,
 } from "../systems";
 import { TargetVisualizationSystem } from "../systems/TargetVisualizationSystem";
-import { ANT_MAX_AGE } from "./constants";
+import { ANT_MAX_AGE, INITIAL_SPAWN_RATE } from "./constants";
 import { MapLoader } from "./mapLoader";
 import type { IWorld } from "bitecs";
 
@@ -48,7 +48,7 @@ export class Game {
   private antQuery = defineQuery([Position, ForagerRole]);
   private simulationSpeed = 1;
   private spawnTimer = 0;
-  private spawnRate = 5; // seconds between spawns
+  private spawnRate = INITIAL_SPAWN_RATE; // seconds between spawns
   private tilemap!: CompositeTilemap;
   private mapWidth = 0;
   private mapHeight = 0;

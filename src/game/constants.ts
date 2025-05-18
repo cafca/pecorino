@@ -1,11 +1,12 @@
 export const FOOD_DETECTION_RANGE = 50;
 export const FOOD_PICKUP_RANGE = 20;
 export const FOOD_PICKUP_TIMEOUT = 3000; // 3 seconds timeout for picking up food
-export const NEST_RADIUS = 48;
+export const NEST_RADIUS = 16;
+export const INITIAL_SPAWN_RATE = 3.0;
 export const EXPLORATION_RADIUS = 200;
 export const EXPLORATION_TARGET_TIMEOUT = 5000; // 5 seconds in milliseconds
 export const EXPLORATION_TARGET_REACHED_DISTANCE = 20;
-export const ANT_SPAWN_COST = 3;
+export const ANT_SPAWN_COST = 5;
 export const MAX_DATA_POINTS = 50;
 
 // Age-related constants

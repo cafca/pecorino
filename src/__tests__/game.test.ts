@@ -8,9 +8,11 @@ import {
   Food,
   Nest,
   Target,
+  PlayerControlled,
 } from "../game/components";
 import { createWorld, addComponent, addEntity, defineQuery } from "bitecs";
 import { MovementSystem, ForageBehaviorSystem } from "../systems";
+import { NEST_RADIUS } from "@/game/constants";
 
 describe("Game Components", () => {
   describe("Position", () => {
@@ -122,19 +124,25 @@ describe("MovementSystem", () => {
     const entity = addEntity(world);
     addComponent(world, Position, entity);
     addComponent(world, Velocity, entity);
+    addComponent(world, PlayerControlled, entity);
+
+    // Set player controlled so the target system is not used
+    // which would cause the ant to move towards the target
+    // instead of the boundary
+    PlayerControlled.isPlayer[entity] = 1;
 
     // Test right boundary
-    Position.x[entity] = 790; // Just inside right boundary
+    Position.x[entity] = window.innerWidth - 10; // Just inside right boundary
     Position.y[entity] = 0;
     Velocity.x[entity] = 100; // Moving right
     Velocity.y[entity] = 0;
 
     movementSystem(1.0);
-    expect(Position.x[entity]).toBe(800); // Should stop at boundary
+    expect(Position.x[entity]).toBe(window.innerWidth); // Should stop at boundary
     expect(Velocity.x[entity]).toBe(0); // Velocity should be zeroed
 
     // Test left boundary
-    Position.x[entity] = 10; // Just inside left boundary
+    Position.x[entity] = 0; // Just inside left boundary
     Position.y[entity] = 0;
     Velocity.x[entity] = -100; // Moving left
     Velocity.y[entity] = 0;
@@ -145,17 +153,17 @@ describe("MovementSystem", () => {
 
     // Test bottom boundary
     Position.x[entity] = 0;
-    Position.y[entity] = 590; // Just inside bottom boundary
+    Position.y[entity] = window.innerHeight - 10; // Just inside bottom boundary
     Velocity.x[entity] = 0;
     Velocity.y[entity] = 100; // Moving down
 
     movementSystem(1.0);
-    expect(Position.y[entity]).toBe(600); // Should stop at boundary
+    expect(Position.y[entity]).toBe(window.innerHeight); // Should stop at boundary
     expect(Velocity.y[entity]).toBe(0); // Velocity should be zeroed
 
     // Test top boundary
     Position.x[entity] = 0;
-    Position.y[entity] = 10; // Just inside top boundary
+    Position.y[entity] = 0; // Just inside top boundary
     Velocity.x[entity] = 0;
     Velocity.y[entity] = -100; // Moving up
 
@@ -168,16 +176,22 @@ describe("MovementSystem", () => {
     const entity = addEntity(world);
     addComponent(world, Position, entity);
     addComponent(world, Velocity, entity);
+    addComponent(world, PlayerControlled, entity);
+
+    // Set player controlled so the target system is not used
+    // which would cause the ant to move towards the target
+    // instead of the boundary
+    PlayerControlled.isPlayer[entity] = 1;
 
     // Test diagonal movement into corner
-    Position.x[entity] = 790; // Near right boundary
-    Position.y[entity] = 590; // Near bottom boundary
-    Velocity.x[entity] = 100; // Moving right
-    Velocity.y[entity] = 100; // Moving down
+    Position.x[entity] = window.innerWidth - 10; // Near right boundary
+    Position.y[entity] = window.innerHeight - 10; // Near bottom boundary
+    Velocity.x[entity] = 150; // Moving right
+    Velocity.y[entity] = 150; // Moving down
 
     movementSystem(1.0);
-    expect(Position.x[entity]).toBe(800); // Should stop at right boundary
-    expect(Position.y[entity]).toBe(600); // Should stop at bottom boundary
+    expect(Position.x[entity]).toBe(window.innerWidth); // Should stop at right boundary
+    expect(Position.y[entity]).toBe(window.innerHeight); // Should stop at bottom boundary
     expect(Velocity.x[entity]).toBe(0); // X velocity should be zeroed
     expect(Velocity.y[entity]).toBe(0); // Y velocity should be zeroed
   });
@@ -199,8 +213,9 @@ describe("HUD", () => {
     addComponent(world, ForagerRole, ant);
     addComponent(world, Target, ant);
     addComponent(world, Velocity, ant);
-    Position.x[ant] = 20;
-    Position.y[ant] = 20;
+    addComponent(world, PlayerControlled, ant);
+    Position.x[ant] = NEST_RADIUS / 2;
+    Position.y[ant] = NEST_RADIUS / 2;
     ForagerRole.state[ant] = 1; // Carrying food
     ForagerRole.foodCarried[ant] = 1;
     Target.x[ant] = 0;
@@ -274,6 +289,9 @@ describe("Food in World", () => {
     addComponent(world, ForagerRole, ant);
     addComponent(world, Target, ant);
     addComponent(world, Velocity, ant);
+    addComponent(world, PlayerControlled, ant);
+    PlayerControlled.isPlayer[ant] = 0;
+    PlayerControlled.speed[ant] = 0;
 
     Position.x[ant] = Position.x[food];
     Position.y[ant] = Position.y[food];
