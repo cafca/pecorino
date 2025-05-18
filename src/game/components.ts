@@ -34,7 +34,7 @@ export const PheromoneSensor = defineComponent({
 });
 
 export const ForagerRole = defineComponent({
-  state: Types.ui8, // 0: FindFood, 1: CarryFood, 2: DepositFood
+  state: Types.ui8, // 0: FindFood, 1: CarryFood
   foodCarried: Types.ui8,
 });
 

@@ -6,6 +6,7 @@ import {
   Sprite as PixiSprite,
   Assets,
   Graphics,
+  Text,
 } from "pixi.js";
 import {
   Position,
@@ -71,6 +72,7 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
   const enter = enterQuery(query);
   const exit = exitQuery(query);
   const sprites = new Map<number, PixiSprite>();
+  const labels = new Map<number, Text>();
   const container = new Container();
   const pheromoneContainer = new Container();
   app.stage.addChild(container);
@@ -118,8 +120,28 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
       const sprite = new PixiSprite(Assets.get(texture));
       sprite.anchor.set(0.5);
       sprite.scale.set(Sprite.scale[eid]);
+
+      // Tint ants based on their state
+      if (ForagerRole.state[eid] === 1) {
+        sprite.tint = 0xff0000; // Red tint for ants carrying food
+      } else {
+        sprite.tint = 0xffffff; // White (no tint) for ants searching for food
+      }
+
       container.addChild(sprite);
       sprites.set(eid, sprite);
+
+      // Create label for ants
+      if (Sprite.texture[eid] === 0) {
+        const label = new Text("", {
+          fontSize: 12,
+          fill: 0x666666,
+          align: "center",
+        });
+        label.anchor.set(1.5);
+        container.addChild(label);
+        labels.set(eid, label);
+      }
     }
 
     // Handle removed entities
@@ -130,9 +152,14 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
         container.removeChild(sprite);
         sprites.delete(eid);
       }
+      const label = labels.get(eid);
+      if (label) {
+        container.removeChild(label);
+        labels.delete(eid);
+      }
     }
 
-    // Update entity sprites
+    // Update entity sprites and labels
     const entities = query(world);
     for (const eid of entities) {
       const sprite = sprites.get(eid);
@@ -146,6 +173,22 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
           if (Velocity.x[eid] !== 0 || Velocity.y[eid] !== 0) {
             sprite.rotation =
               Math.atan2(Velocity.y[eid], Velocity.x[eid]) + Math.PI;
+          }
+
+          // Update label for ants
+          const label = labels.get(eid);
+          if (label) {
+            let stateText = "";
+            if (PlayerControlled.isPlayer[eid] === 1) {
+              stateText = "Player";
+            } else if (ForagerRole.state[eid] === 1) {
+              stateText = "Carrying";
+            } else {
+              stateText = "Searching";
+            }
+            label.text = stateText;
+            label.x = Position.x[eid];
+            label.y = Position.y[eid] - 20; // Position label above the ant
           }
         } else {
           sprite.rotation = 0;
@@ -181,7 +224,7 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
             const color = 0x00ff00 + Math.floor(alpha * 0x0000ff); // Green to blue gradient
 
             // Draw a larger circle for each pheromone point
-            pheromoneGraphics.beginFill(color, alpha * 0.2);
+            pheromoneGraphics.beginFill(color, alpha * 0.5);
             pheromoneGraphics.drawCircle(worldX, worldY, 5.0);
             pheromoneGraphics.endFill();
           }
@@ -204,8 +247,7 @@ export const PheromoneDepositSystem =
         if (PheromoneEmitter.isEmitting[eid] && ForagerRole.state[eid] === 1) {
           const x = Position.x[eid];
           const y = Position.y[eid];
-          const strength = PheromoneEmitter.strength[eid];
-          pheromoneGrid.deposit(x, y, strength);
+          pheromoneGrid.deposit(x, y, 1.0);
         }
       }
     };

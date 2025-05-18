@@ -7,6 +7,7 @@ interface HUDProps {
   spawnRate: number;
   onSpeedToggle: () => void;
   onSpawnRateChange: (rate: number) => void;
+  onAntCountChange: (count: number) => void;
 }
 
 export const HUD: React.FC<HUDProps> = ({
@@ -16,6 +17,7 @@ export const HUD: React.FC<HUDProps> = ({
   spawnRate,
   onSpeedToggle,
   onSpawnRateChange,
+  onAntCountChange,
 }) => {
   return (
     <div
@@ -52,7 +54,19 @@ export const HUD: React.FC<HUDProps> = ({
             marginBottom: 10,
           }}
         >
-          Ant Population: {antCount}
+          Ant Count: {antCount}
+          <input
+            type="range"
+            min="1"
+            max="20"
+            step="1"
+            value={antCount}
+            onChange={(e) => onAntCountChange(parseInt(e.target.value))}
+            style={{
+              width: "200px",
+              marginLeft: "10px",
+            }}
+          />
         </div>
         <div
           style={{

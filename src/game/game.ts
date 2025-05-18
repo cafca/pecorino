@@ -1,4 +1,10 @@
-import { createWorld, addComponent, addEntity, defineQuery } from "bitecs";
+import {
+  createWorld,
+  addComponent,
+  addEntity,
+  defineQuery,
+  removeComponent,
+} from "bitecs";
 import { Application, Assets } from "pixi.js";
 import {
   Position,
@@ -35,7 +41,6 @@ export class Game {
   private pheromoneGrid: PheromoneGrid;
   private playerQuery = defineQuery([Position, PlayerControlled]);
   private antQuery = defineQuery([Position, ForagerRole]);
-  private foodQuery = defineQuery([Position, Food]);
   private simulationSpeed = 1;
   private spawnTimer = 0;
   private spawnRate = 5; // seconds between spawns
@@ -287,7 +292,39 @@ export class Game {
   }
 
   public setSpawnRate(rate: number) {
-    this.spawnRate = Math.max(0.5, Math.min(10, rate));
+    this.spawnRate = rate;
+  }
+
+  public setAntCount(count: number) {
+    const currentCount = this.antQuery(this.world).length;
+    const diff = count - currentCount;
+
+    if (diff > 0) {
+      // Add ants
+      for (let i = 0; i < diff; i++) {
+        const radius = Math.random() * 300;
+        const angle = Math.random() * Math.PI * 2;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        this.createAnt(x, y, false);
+      }
+    } else if (diff < 0) {
+      // Remove ants (except player ant)
+      const ants = this.antQuery(this.world).filter(
+        (eid) => PlayerControlled.isPlayer[eid] === 0
+      );
+      for (let i = 0; i < -diff && i < ants.length; i++) {
+        const ant = ants[i];
+        removeComponent(this.world, Position, ant);
+        removeComponent(this.world, Velocity, ant);
+        removeComponent(this.world, Sprite, ant);
+        removeComponent(this.world, PlayerControlled, ant);
+        removeComponent(this.world, PheromoneEmitter, ant);
+        removeComponent(this.world, PheromoneSensor, ant);
+        removeComponent(this.world, ForagerRole, ant);
+        removeComponent(this.world, Target, ant);
+      }
+    }
   }
 
   private spawnRandomFood() {

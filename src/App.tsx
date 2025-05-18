@@ -56,6 +56,13 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleAntCountChange = (count: number) => {
+    if (game) {
+      game.setAntCount(count);
+      setHudState(game.getHUDState());
+    }
+  };
+
   return (
     <div
       style={{
@@ -103,6 +110,7 @@ export const App: React.FC = () => {
           spawnRate={hudState.spawnRate}
           onSpeedToggle={handleSpeedToggle}
           onSpawnRateChange={handleSpawnRateChange}
+          onAntCountChange={handleAntCountChange}
         />
       </div>
     </div>
