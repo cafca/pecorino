@@ -105,8 +105,17 @@ test.describe("game", () => {
 
       await page.mouse.click(posX, posY);
 
-      // Wait a bit for the food to be created
-      await page.waitForTimeout(100);
+      // Wait for food count to increase
+      await page.waitForFunction(
+        (initialCount) => {
+          // @ts-expect-error window.game is not typed
+          // eslint-disable-next-line no-undef
+          const game = window.game;
+          return game.getHUDState().foodInWorld > initialCount;
+        },
+        initialFoodInWorld,
+        { timeout: 5000 }
+      );
 
       // Get new food in world
       const newFoodInWorld = await page.evaluate(() => {
@@ -118,6 +127,38 @@ test.describe("game", () => {
 
       // Food in world should have increased
       expect(newFoodInWorld).toBe(initialFoodInWorld + 1);
+
+      // Click multiple times in different locations
+      const clicks = [
+        { x: box.x + 10, y: box.y + 10 }, // top-left
+        { x: box.x + box.width - 10, y: box.y + 10 }, // top-right
+        { x: box.x + 10, y: box.y + box.height - 10 }, // bottom-left
+        { x: box.x + box.width - 10, y: box.y + box.height - 10 }, // bottom-right
+      ];
+
+      for (const click of clicks) {
+        await page.mouse.click(click.x, click.y);
+        await page.waitForFunction(
+          (currentCount) => {
+            // @ts-expect-error window.game is not typed
+            // eslint-disable-next-line no-undef
+            const game = window.game;
+            return game.getHUDState().foodInWorld > currentCount;
+          },
+          newFoodInWorld,
+          { timeout: 5000 }
+        );
+      }
+
+      // Verify final food count
+      const finalFoodInWorld = await page.evaluate(() => {
+        // @ts-expect-error window.game is not typed
+        // eslint-disable-next-line no-undef
+        const game = window.game;
+        return game.getHUDState().foodInWorld;
+      });
+
+      expect(finalFoodInWorld).toBe(initialFoodInWorld + 5); // 1 from center click + 4 from edge clicks
     });
 
     test("initial food in world is 5", async ({ page }) => {

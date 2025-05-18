@@ -1,4 +1,12 @@
-import { defineQuery, enterQuery, exitQuery } from "bitecs";
+import {
+  createWorld,
+  addComponent,
+  addEntity,
+  defineQuery,
+  enterQuery,
+  exitQuery,
+  removeComponent,
+} from "bitecs";
 import type { IWorld } from "bitecs";
 import {
   Application,
@@ -16,10 +24,15 @@ import {
   PheromoneEmitter,
   PheromoneSensor,
   ForagerRole,
+  Target,
+  Food,
   AntState,
+  Nest,
+  Age,
   AntStateType,
 } from "../game/components";
 import { PheromoneGrid } from "../game/pheromoneGrid";
+import { ANT_AGE_INCREMENT } from "../game/constants";
 
 // Input System
 export const InputSystem = (world: IWorld) => {
@@ -218,9 +231,14 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
           if (label) {
             const stateType = AntState.currentState[eid];
             const stateText = AntStateType[stateType];
-            label.text = stateText;
-            label.x = Position.x[eid];
-            label.y = Position.y[eid] - 20; // Position label above the ant
+            const isPlayer = PlayerControlled.isPlayer[eid] === 1;
+            const age = Age.currentAge[eid];
+            const maxAge = Age.maxAge[eid];
+            const agePercentage = Math.floor((age / maxAge) * 100);
+            label.text = isPlayer
+              ? "YOU"
+              : `${stateText} | Age: ${agePercentage}%`;
+            label.position.set(Position.x[eid], Position.y[eid] - 20);
           }
         } else {
           sprite.rotation = 0;
@@ -443,6 +461,36 @@ export const AntStateSystem = (world: IWorld) => {
         AntState.previousState[eid] = AntState.currentState[eid];
       } else {
         AntState.stateTimer[eid] += 1;
+      }
+    }
+  };
+};
+
+export const AgingSystem = (world: IWorld) => {
+  const query = defineQuery([Age]);
+
+  return (delta: number) => {
+    const entities = query(world);
+    for (const eid of entities) {
+      // Increment age
+      Age.currentAge[eid] += ANT_AGE_INCREMENT * delta;
+
+      // Check if ant has reached max age
+      if (Age.currentAge[eid] >= Age.maxAge[eid]) {
+        // Don't kill player ant
+        if (PlayerControlled.isPlayer[eid] === 0) {
+          // Remove all components
+          removeComponent(world, Position, eid);
+          removeComponent(world, Velocity, eid);
+          removeComponent(world, Sprite, eid);
+          removeComponent(world, PlayerControlled, eid);
+          removeComponent(world, PheromoneEmitter, eid);
+          removeComponent(world, PheromoneSensor, eid);
+          removeComponent(world, ForagerRole, eid);
+          removeComponent(world, Target, eid);
+          removeComponent(world, AntState, eid);
+          removeComponent(world, Age, eid);
+        }
       }
     }
   };

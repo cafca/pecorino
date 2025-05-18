@@ -18,6 +18,7 @@ import {
   Food,
   AntState,
   Nest,
+  Age,
 } from "./components";
 import {
   InputSystem,
@@ -27,9 +28,11 @@ import {
   PheromoneFollowSystem,
   ForageBehaviorSystem,
   AntStateSystem,
+  AgingSystem,
 } from "../systems/systems";
 import { PheromoneGrid } from "./pheromoneGrid";
 import { Graphics } from "pixi.js";
+import { ANT_MAX_AGE } from "./constants";
 
 export class Game {
   public readonly world = createWorld();
@@ -42,6 +45,7 @@ export class Game {
   private pheromoneFollowSystem: () => void;
   private forageBehaviorSystem: () => void;
   private antStateSystem: () => void;
+  private agingSystem: (delta: number) => void;
   private pheromoneGrid: PheromoneGrid;
   private playerQuery = defineQuery([Position, PlayerControlled]);
   private antQuery = defineQuery([Position, ForagerRole]);
@@ -72,6 +76,7 @@ export class Game {
     );
     this.forageBehaviorSystem = ForageBehaviorSystem(this.world);
     this.antStateSystem = AntStateSystem(this.world);
+    this.agingSystem = AgingSystem(this.world);
   }
 
   private async initAssets() {
@@ -99,7 +104,12 @@ export class Game {
     Assets.cache.set("circle", circleTexture);
   }
 
-  private createAnt(x: number, y: number, isPlayer: boolean = false) {
+  public createAnt(
+    x: number,
+    y: number,
+    isPlayer: boolean = false,
+    initialAge?: number
+  ) {
     const ant = addEntity(this.world);
 
     addComponent(this.world, Position, ant);
@@ -111,6 +121,7 @@ export class Game {
     addComponent(this.world, ForagerRole, ant);
     addComponent(this.world, Target, ant);
     addComponent(this.world, AntState, ant);
+    addComponent(this.world, Age, ant);
 
     // Set initial values
     Position.x[ant] = x;
@@ -135,6 +146,9 @@ export class Game {
     AntState.currentState[ant] = 0;
     AntState.previousState[ant] = 0;
     AntState.stateTimer[ant] = 0;
+    Age.maxAge[ant] = ANT_MAX_AGE;
+    Age.currentAge[ant] =
+      initialAge !== undefined ? initialAge : Math.random() * 0.5 * ANT_MAX_AGE;
 
     return ant;
   }
@@ -214,6 +228,7 @@ export class Game {
       this.pheromoneFollowSystem();
       this.forageBehaviorSystem();
       this.antStateSystem();
+      this.agingSystem(adjustedDelta);
       this.pheromoneGrid.update(adjustedDelta);
       this.renderSystem();
 
@@ -348,6 +363,7 @@ export class Game {
         removeComponent(this.world, ForagerRole, ant);
         removeComponent(this.world, Target, ant);
         removeComponent(this.world, AntState, ant);
+        removeComponent(this.world, Age, ant);
       }
     }
   }

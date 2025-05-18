@@ -11,6 +11,7 @@ import {
   AntStateType,
   PheromoneSensor,
   Sprite,
+  Age,
 } from "@/game/components";
 import { removeComponent, defineQuery, addEntity, addComponent } from "bitecs";
 import { Sprite as PixiSprite } from "pixi.js";
@@ -25,6 +26,8 @@ import {
   EXPLORATION_RADIUS,
   EXPLORATION_TARGET_TIMEOUT,
   EXPLORATION_TARGET_REACHED_DISTANCE,
+  ANT_SPAWN_COST,
+  ANT_MAX_AGE,
 } from "../game/constants";
 
 // Track exploration targets and their timestamps
@@ -232,46 +235,58 @@ const handleCarryFoodState = (
       const nest = nests[0];
       Nest.foodCount[nest] += 1;
 
-      // If we've collected 5 food items, spawn a new ant
-      if (Nest.foodCount[nest] >= 5) {
-        // Create new ant at nest location
-        const newAnt = addEntity(world);
-        addComponent(world, Position, newAnt);
-        addComponent(world, Velocity, newAnt);
-        addComponent(world, Sprite, newAnt);
-        addComponent(world, PlayerControlled, newAnt);
-        addComponent(world, PheromoneEmitter, newAnt);
-        addComponent(world, PheromoneSensor, newAnt);
-        addComponent(world, ForagerRole, newAnt);
-        addComponent(world, Target, newAnt);
-        addComponent(world, AntState, newAnt);
+      // If we've collected enough food items, spawn a new ant
+      if (Nest.foodCount[nest] >= ANT_SPAWN_COST) {
+        // Create new ant at nest location with age 0 using Game's createAnt
+        if (
+          typeof window !== "undefined" &&
+          window.game &&
+          typeof window.game.createAnt === "function"
+        ) {
+          window.game.createAnt(0, 0, false, 0);
+        } else {
+          // fallback: direct entity creation (for tests)
+          const newAnt = addEntity(world);
+          addComponent(world, Position, newAnt);
+          addComponent(world, Velocity, newAnt);
+          addComponent(world, Sprite, newAnt);
+          addComponent(world, PlayerControlled, newAnt);
+          addComponent(world, PheromoneEmitter, newAnt);
+          addComponent(world, PheromoneSensor, newAnt);
+          addComponent(world, ForagerRole, newAnt);
+          addComponent(world, Target, newAnt);
+          addComponent(world, AntState, newAnt);
+          addComponent(world, Age, newAnt);
 
-        // Set initial values for new ant
-        Position.x[newAnt] = 0;
-        Position.y[newAnt] = 0;
-        Velocity.x[newAnt] = 0;
-        Velocity.y[newAnt] = 0;
-        PlayerControlled.speed[newAnt] = 100;
-        PlayerControlled.isPlayer[newAnt] = 0;
-        Sprite.texture[newAnt] = 0; // ant texture
-        Sprite.width[newAnt] = 32;
-        Sprite.height[newAnt] = 32;
-        Sprite.scale[newAnt] = 0.1;
-        PheromoneEmitter.strength[newAnt] = 1.0;
-        PheromoneEmitter.isEmitting[newAnt] = 0;
-        PheromoneSensor.radius[newAnt] = 50;
-        PheromoneSensor.sensitivity[newAnt] = 0.5;
-        ForagerRole.state[newAnt] = 0;
-        ForagerRole.foodCarried[newAnt] = 0;
-        Target.x[newAnt] = 0;
-        Target.y[newAnt] = 0;
-        Target.type[newAnt] = 0;
-        AntState.currentState[newAnt] = 0;
-        AntState.previousState[newAnt] = 0;
-        AntState.stateTimer[newAnt] = 0;
+          // Set initial values for new ant
+          Position.x[newAnt] = 0;
+          Position.y[newAnt] = 0;
+          Velocity.x[newAnt] = 0;
+          Velocity.y[newAnt] = 0;
+          PlayerControlled.speed[newAnt] = 100;
+          PlayerControlled.isPlayer[newAnt] = 0;
+          Sprite.texture[newAnt] = 0; // ant texture
+          Sprite.width[newAnt] = 32;
+          Sprite.height[newAnt] = 32;
+          Sprite.scale[newAnt] = 0.1;
+          PheromoneEmitter.strength[newAnt] = 1.0;
+          PheromoneEmitter.isEmitting[newAnt] = 0;
+          PheromoneSensor.radius[newAnt] = 50;
+          PheromoneSensor.sensitivity[newAnt] = 0.5;
+          ForagerRole.state[newAnt] = 0;
+          ForagerRole.foodCarried[newAnt] = 0;
+          Target.x[newAnt] = 0;
+          Target.y[newAnt] = 0;
+          Target.type[newAnt] = 0;
+          AntState.currentState[newAnt] = 0;
+          AntState.previousState[newAnt] = 0;
+          AntState.stateTimer[newAnt] = 0;
+          Age.currentAge[newAnt] = 0;
+          Age.maxAge[newAnt] = ANT_MAX_AGE;
+        }
 
-        // Reset food count in nest
-        Nest.foodCount[nest] = 0;
+        // Reduce nest food count by the cost of a new ant
+        Nest.foodCount[nest] -= ANT_SPAWN_COST;
       }
     }
 

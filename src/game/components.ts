@@ -67,3 +67,8 @@ export const AntState = defineComponent({
   previousState: Types.ui8,
   stateTimer: Types.f32,
 });
+
+export const Age = defineComponent({
+  currentAge: Types.f32,
+  maxAge: Types.f32,
+});
