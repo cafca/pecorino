@@ -12,9 +12,11 @@ import {
 } from "../game/components";
 import { createWorld, addComponent, addEntity, defineQuery } from "bitecs";
 import { MovementSystem, ForageBehaviorSystem } from "../systems";
-import { NEST_RADIUS } from "@/game/constants";
+import { NEST_RADIUS, WORLD_WIDTH, WORLD_HEIGHT } from "@/game/constants";
 import { createAnt } from "@/game/prefabs/ant";
 import { createNest } from "@/game/prefabs/nest";
+import { createCamera } from "@/game/prefabs/camera";
+import { Camera } from "../game/components/Camera";
 
 describe("Game Components", () => {
   describe("Position", () => {
@@ -61,6 +63,7 @@ describe("MovementSystem", () => {
   beforeEach(() => {
     world = createWorld();
     movementSystem = MovementSystem(world);
+    createCamera(world);
   });
 
   it("should update position based on velocity and delta time", () => {
@@ -68,18 +71,15 @@ describe("MovementSystem", () => {
     addComponent(world, Position, entity);
     addComponent(world, Velocity, entity);
 
-    // Set initial values
     Position.x[entity] = 0;
     Position.y[entity] = 0;
     Velocity.x[entity] = 10;
     Velocity.y[entity] = 5;
 
-    // Run system with 0.5s delta
     movementSystem(0.5);
 
-    // Position should be updated: pos = pos + vel * delta
-    expect(Position.x[entity]).toBe(5); // 0 + 10 * 0.5
-    expect(Position.y[entity]).toBe(2.5); // 0 + 5 * 0.5
+    expect(Position.x[entity]).toBe(5);
+    expect(Position.y[entity]).toBe(2.5);
   });
 
   it("should not move entities without velocity component", () => {
@@ -127,51 +127,47 @@ describe("MovementSystem", () => {
     addComponent(world, Position, entity);
     addComponent(world, Velocity, entity);
     addComponent(world, PlayerControlled, entity);
-
-    // Set player controlled so the target system is not used
-    // which would cause the ant to move towards the target
-    // instead of the boundary
     PlayerControlled.isPlayer[entity] = 1;
 
     // Test right boundary
-    Position.x[entity] = window.innerWidth - 10; // Just inside right boundary
+    Position.x[entity] = WORLD_WIDTH - 10;
     Position.y[entity] = 0;
-    Velocity.x[entity] = 100; // Moving right
+    Velocity.x[entity] = 100;
     Velocity.y[entity] = 0;
 
     movementSystem(1.0);
-    expect(Position.x[entity]).toBe(window.innerWidth); // Should stop at boundary
-    expect(Velocity.x[entity]).toBe(0); // Velocity should be zeroed
+    expect(Position.x[entity]).toBe(WORLD_WIDTH);
+    expect(Velocity.x[entity]).toBe(0);
 
     // Test left boundary
-    Position.x[entity] = 0; // Just inside left boundary
+    Position.x[entity] = 0;
     Position.y[entity] = 0;
-    Velocity.x[entity] = -100; // Moving left
+    Velocity.x[entity] = -100;
     Velocity.y[entity] = 0;
 
     movementSystem(1.0);
-    expect(Position.x[entity]).toBe(0); // Should stop at boundary
-    expect(Velocity.x[entity]).toBe(0); // Velocity should be zeroed
+    expect(Position.x[entity]).toBe(0);
+    expect(Velocity.x[entity]).toBe(0);
 
     // Test bottom boundary
     Position.x[entity] = 0;
-    Position.y[entity] = window.innerHeight - 10; // Just inside bottom boundary
+    Position.y[entity] = WORLD_HEIGHT - 10;
     Velocity.x[entity] = 0;
-    Velocity.y[entity] = 100; // Moving down
+    Velocity.y[entity] = 100;
 
     movementSystem(1.0);
-    expect(Position.y[entity]).toBe(window.innerHeight); // Should stop at boundary
-    expect(Velocity.y[entity]).toBe(0); // Velocity should be zeroed
+    expect(Position.y[entity]).toBe(WORLD_HEIGHT);
+    expect(Velocity.y[entity]).toBe(0);
 
     // Test top boundary
     Position.x[entity] = 0;
-    Position.y[entity] = 0; // Just inside top boundary
+    Position.y[entity] = 0;
     Velocity.x[entity] = 0;
-    Velocity.y[entity] = -100; // Moving up
+    Velocity.y[entity] = -100;
 
     movementSystem(1.0);
-    expect(Position.y[entity]).toBe(0); // Should stop at boundary
-    expect(Velocity.y[entity]).toBe(0); // Velocity should be zeroed
+    expect(Position.y[entity]).toBe(0);
+    expect(Velocity.y[entity]).toBe(0);
   });
 
   it("should handle diagonal movement at boundaries", () => {
@@ -179,23 +175,19 @@ describe("MovementSystem", () => {
     addComponent(world, Position, entity);
     addComponent(world, Velocity, entity);
     addComponent(world, PlayerControlled, entity);
-
-    // Set player controlled so the target system is not used
-    // which would cause the ant to move towards the target
-    // instead of the boundary
     PlayerControlled.isPlayer[entity] = 1;
 
     // Test diagonal movement into corner
-    Position.x[entity] = window.innerWidth - 10; // Near right boundary
-    Position.y[entity] = window.innerHeight - 10; // Near bottom boundary
-    Velocity.x[entity] = 150; // Moving right
-    Velocity.y[entity] = 150; // Moving down
+    Position.x[entity] = WORLD_WIDTH - 10;
+    Position.y[entity] = WORLD_HEIGHT - 10;
+    Velocity.x[entity] = 150;
+    Velocity.y[entity] = 150;
 
     movementSystem(1.0);
-    expect(Position.x[entity]).toBe(window.innerWidth); // Should stop at right boundary
-    expect(Position.y[entity]).toBe(window.innerHeight); // Should stop at bottom boundary
-    expect(Velocity.x[entity]).toBe(0); // X velocity should be zeroed
-    expect(Velocity.y[entity]).toBe(0); // Y velocity should be zeroed
+    expect(Position.x[entity]).toBe(WORLD_WIDTH);
+    expect(Position.y[entity]).toBe(WORLD_HEIGHT);
+    expect(Velocity.x[entity]).toBe(0);
+    expect(Velocity.y[entity]).toBe(0);
   });
 });
 
@@ -307,5 +299,102 @@ describe("Food in World", () => {
 
     const remainingFoodCount = foodQuery(world).length;
     expect(remainingFoodCount).toBe(initialFoodCount - 1);
+  });
+});
+
+describe("Camera and Movement Integration", () => {
+  let world: IWorld;
+  let movementSystem: (delta: number) => void;
+  let cameraEntity: number;
+
+  beforeEach(() => {
+    world = createWorld();
+    movementSystem = MovementSystem(world);
+    cameraEntity = createCamera(world);
+  });
+
+  it("should maintain correct world boundaries when zoomed in", () => {
+    Camera.zoom[cameraEntity] = 2;
+
+    const entity = addEntity(world);
+    addComponent(world, Position, entity);
+    addComponent(world, Velocity, entity);
+    addComponent(world, PlayerControlled, entity);
+    PlayerControlled.isPlayer[entity] = 1;
+
+    Position.x[entity] = WORLD_WIDTH - 10;
+    Velocity.x[entity] = 100;
+
+    movementSystem(1.0);
+
+    expect(Position.x[entity]).toBe(WORLD_WIDTH);
+    expect(Velocity.x[entity]).toBe(0);
+  });
+
+  it("should maintain correct world boundaries when zoomed out", () => {
+    Camera.zoom[cameraEntity] = 0.5;
+
+    const entity = addEntity(world);
+    addComponent(world, Position, entity);
+    addComponent(world, Velocity, entity);
+    addComponent(world, PlayerControlled, entity);
+    PlayerControlled.isPlayer[entity] = 1;
+
+    Position.x[entity] = WORLD_WIDTH - 10;
+    Velocity.x[entity] = 100;
+
+    movementSystem(1.0);
+
+    expect(Position.x[entity]).toBe(WORLD_WIDTH);
+    expect(Velocity.x[entity]).toBe(0);
+  });
+
+  it("should scale velocity correctly with zoom level", () => {
+    const entity = addEntity(world);
+    addComponent(world, Position, entity);
+    addComponent(world, Velocity, entity);
+    addComponent(world, PlayerControlled, entity);
+    PlayerControlled.isPlayer[entity] = 1;
+    PlayerControlled.speed[entity] = 100;
+
+    const testZoomLevels = [0.5, 1, 2];
+    const startX = 100;
+    const baseVelocity = 50;
+
+    for (const zoom of testZoomLevels) {
+      Camera.zoom[cameraEntity] = zoom;
+      Position.x[entity] = startX;
+      Velocity.x[entity] = baseVelocity;
+
+      movementSystem(1.0);
+
+      const expectedMovement = baseVelocity;
+      expect(Position.x[entity]).toBe(startX + expectedMovement);
+
+      Position.x[entity] = startX;
+    }
+  });
+
+  it("should handle diagonal movement correctly at different zoom levels", () => {
+    Camera.zoom[cameraEntity] = 2;
+
+    const entity = addEntity(world);
+    addComponent(world, Position, entity);
+    addComponent(world, Velocity, entity);
+    addComponent(world, PlayerControlled, entity);
+    PlayerControlled.isPlayer[entity] = 1;
+    PlayerControlled.speed[entity] = 100;
+
+    Position.x[entity] = WORLD_WIDTH - 10;
+    Position.y[entity] = WORLD_HEIGHT - 10;
+    Velocity.x[entity] = 100;
+    Velocity.y[entity] = 100;
+
+    movementSystem(1.0);
+
+    expect(Position.x[entity]).toBe(WORLD_WIDTH);
+    expect(Position.y[entity]).toBe(WORLD_HEIGHT);
+    expect(Velocity.x[entity]).toBe(0);
+    expect(Velocity.y[entity]).toBe(0);
   });
 });

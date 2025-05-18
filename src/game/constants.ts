@@ -12,3 +12,7 @@ export const MAX_DATA_POINTS = 50;
 // Age-related constants
 export const ANT_MAX_AGE = 60; // Maximum age in seconds
 export const ANT_AGE_INCREMENT = 1; // How much to increment age per second
+
+// World dimensions
+export const WORLD_WIDTH = 960; // 30 tiles × 32 pixels
+export const WORLD_HEIGHT = 640; // 20 tiles × 32 pixels

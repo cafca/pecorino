@@ -1,4 +1,4 @@
-import { createWorld, defineQuery, removeEntity } from "bitecs";
+import { createWorld, defineQuery, removeEntity, type IWorld } from "bitecs";
 import { Application, Assets, Container, Graphics } from "pixi.js";
 import { CompositeTilemap } from "@pixi/tilemap";
 import {
@@ -20,10 +20,11 @@ import {
 import { TargetVisualizationSystem } from "../systems/TargetVisualizationSystem";
 import { INITIAL_SPAWN_RATE } from "./constants";
 import { MapLoader } from "./mapLoader";
-import type { IWorld } from "bitecs";
 import { createAnt } from "./prefabs/ant";
 import { createFood } from "./prefabs/food";
 import { createNest } from "./prefabs/nest";
+import { createCamera } from "./prefabs/camera";
+import { CameraSystem } from "../systems/CameraSystem";
 
 export class Game {
   public readonly world = createWorld();
@@ -36,6 +37,7 @@ export class Game {
   private antStateSystem: () => void;
   private agingSystem: (delta: number) => void;
   private targetVisualizationSystem: (world: IWorld) => void;
+  private cameraSystem: () => void;
   private playerQuery = defineQuery([Position, PlayerControlled]);
   private antQuery = defineQuery([Position, ForagerRole]);
   private simulationSpeed = 1;
@@ -70,6 +72,18 @@ export class Game {
 
     // Get reference to the game container from render system
     this.gameContainer = this.app.stage.children[0] as Container;
+
+    // Initialize camera using the prefab
+    createCamera(this.world);
+
+    this.cameraSystem = CameraSystem(this.gameContainer);
+
+    // Make game instance available globally for camera system
+    Object.defineProperty(globalThis, "game", {
+      value: this,
+      writable: false,
+      configurable: true,
+    });
   }
 
   private async initAssets() {
@@ -176,6 +190,7 @@ export class Game {
         this.antStateSystem();
         this.agingSystem(adjustedDelta);
         this.targetVisualizationSystem(this.world);
+        this.cameraSystem();
         this.renderSystem();
 
         // Handle food spawning
