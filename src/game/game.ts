@@ -1,4 +1,3 @@
-import { DOMParser } from "xmldom";
 import {
   createWorld,
   addComponent,
@@ -6,14 +5,7 @@ import {
   defineQuery,
   removeComponent,
 } from "bitecs";
-import {
-  Application,
-  Assets,
-  Texture,
-  Sprite as PixiSprite,
-  Container,
-  Rectangle,
-} from "pixi.js";
+import { Application, Assets, Container } from "pixi.js";
 import { CompositeTilemap } from "@pixi/tilemap";
 import {
   Position,
@@ -36,42 +28,7 @@ import {
   AgingSystem,
 } from "../systems";
 import { ANT_MAX_AGE } from "./constants";
-
-interface TiledTileset {
-  firstgid: number;
-  source: never; // don't use this
-}
-
-interface TiledLayer {
-  data: number[];
-  height: number;
-  id: number;
-  name: string;
-  opacity: number;
-  type: string;
-  visible: boolean;
-  width: number;
-  x: number;
-  y: number;
-}
-
-interface TiledMap {
-  compressionlevel: number;
-  height: number;
-  infinite: boolean;
-  layers: TiledLayer[];
-  nextlayerid: number;
-  nextobjectid: number;
-  orientation: string;
-  renderorder: string;
-  tiledversion: string;
-  tileheight: number;
-  tilesets: TiledTileset[];
-  tilewidth: number;
-  type: string;
-  version: string;
-  width: number;
-}
+import { MapLoader } from "./mapLoader";
 
 export class Game {
   public readonly world = createWorld();
@@ -246,101 +203,10 @@ export class Game {
   }
 
   private async initMap() {
-    // Load map data
-    const mapData = Assets.get<TiledMap>("map");
-    const tilesheet = Assets.get<Texture>("tilesheet");
-    const tilesetXml = Assets.get<string>("tileset");
-
-    if (!mapData || !tilesheet || !tilesetXml) {
-      console.error("Failed to load map assets");
-      return;
-    }
-
-    // Parse tileset XML
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(tilesetXml, "application/xml");
-    const tilesetElem = doc.getElementsByTagName("tileset")[0];
-
-    if (!tilesetElem) {
-      console.error("Failed to parse tileset XML");
-      return;
-    }
-
-    // Store map dimensions
-    this.mapWidth = mapData.width * mapData.tilewidth;
-    this.mapHeight = mapData.height * mapData.tileheight;
-
-    // Create a container for the map
-    const mapContainer = new Container();
-    this.gameContainer.addChild(mapContainer);
-    mapContainer.position.set(-this.mapWidth / 2, -this.mapHeight / 2);
-
-    // Parse tileset properties
-    // eslint-disable-next-line no-undef
-    function parseTileset(tilesetElem: Element): {
-      tileWidth: number;
-      tileHeight: number;
-      columns: number;
-    } {
-      const tileWidth = tilesetElem.getAttribute("tilewidth");
-      const tileHeight = tilesetElem.getAttribute("tileheight");
-      const columns = tilesetElem.getAttribute("columns");
-
-      if (!tileWidth || !tileHeight || !columns) {
-        console.error("Failed to parse tileset XML");
-        return {
-          tileWidth: 0,
-          tileHeight: 0,
-          columns: 0,
-        };
-      }
-
-      return {
-        tileWidth: parseInt(tileWidth),
-        tileHeight: parseInt(tileHeight),
-        columns: parseInt(columns),
-      };
-    }
-    const { tileWidth, tileHeight, columns } = parseTileset(tilesetElem);
-
-    // Create a pool of textures for each tile type
-    const texturePool = new Map<number, Texture>();
-
-    // Add tiles from the map data
-    mapData.layers.forEach((layer: TiledLayer) => {
-      if (layer.type === "tilelayer") {
-        layer.data.forEach((tileId: number, index: number) => {
-          if (tileId === 0) return; // Skip empty tiles
-
-          // Calculate tile position in the world
-          const x = (index % mapData.width) * tileWidth;
-          const y = Math.floor(index / mapData.width) * tileHeight;
-
-          // Get or create texture for this tile type
-          let tileTexture = texturePool.get(tileId);
-          if (!tileTexture) {
-            // Calculate tile position in the tileset
-            // Subtract 1 from tileId because Tiled uses 1-based indices
-            const tileIndex = tileId - 1;
-            const tx = (tileIndex % columns) * tileWidth;
-            const ty = Math.floor(tileIndex / columns) * tileHeight;
-
-            // uses Pixi v8 syntax
-            tileTexture = new Texture({
-              source: tilesheet.source,
-              frame: new Rectangle(tx, ty, tileWidth, tileHeight),
-            });
-
-            texturePool.set(tileId, tileTexture);
-          }
-
-          // Create a sprite for this tile
-          const tileSprite = new PixiSprite(tileTexture!);
-          tileSprite.position.set(x, y);
-          mapContainer.addChild(tileSprite);
-        });
-      }
-    });
+    const mapLoader = new MapLoader();
+    const { width, height } = await mapLoader.loadMap(this.gameContainer);
+    this.mapWidth = width;
+    this.mapHeight = height;
   }
 
   private initGameLoop() {
