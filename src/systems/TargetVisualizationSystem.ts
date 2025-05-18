@@ -44,5 +44,8 @@ export const TargetVisualizationSystem = (graphics: Graphics) => {
         graphics.lineTo(screenEndX, screenEndY);
       }
     });
+
+    // Stroke all lines at once
+    graphics.stroke();
   };
 };

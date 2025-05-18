@@ -46,9 +46,9 @@ export class Game {
   private tilemap!: CompositeTilemap;
   private mapWidth = 0;
   private mapHeight = 0;
-  private gameContainer!: Container;
+  private gameContainer: Container;
   private targetGraphics: Graphics;
-  private showTargets = true;
+  private showTargets = false;
 
   // HUD state
   private colonyFood = 0;
@@ -57,25 +57,27 @@ export class Game {
 
   private constructor(app: Application) {
     this.app = app;
+
+    // Create main game container
+    this.gameContainer = new Container();
+    this.app.stage.addChild(this.gameContainer);
+
+    // Create graphics for target visualization
+    this.targetGraphics = new Graphics();
+    this.app.stage.addChild(this.targetGraphics);
+
     this.inputSystem = InputSystem(this.world);
     this.movementSystem = MovementSystem(this.world);
     this.renderSystem = RenderSystem(this.app)(this.world);
     this.forageBehaviorSystem = ForageBehaviorSystem(this.world);
     this.antStateSystem = AntStateSystem(this.world);
     this.agingSystem = AgingSystem(this.world);
-
-    // Create graphics for target visualization
-    this.targetGraphics = new Graphics();
     this.targetVisualizationSystem = TargetVisualizationSystem(
       this.targetGraphics
     );
 
-    // Get reference to the game container from render system
-    this.gameContainer = this.app.stage.children[0] as Container;
-
     // Initialize camera using the prefab
     createCamera(this.world);
-
     this.cameraSystem = CameraSystem(this.gameContainer);
   }
 
@@ -135,9 +137,6 @@ export class Game {
   }
 
   private initDemo() {
-    // Add target graphics to game container
-    this.gameContainer.addChild(this.targetGraphics);
-
     // Create nest at center of screen
     const centerX = this.app.screen.width / 2;
     const centerY = this.app.screen.height / 2;
@@ -182,8 +181,8 @@ export class Game {
         this.forageBehaviorSystem();
         this.antStateSystem();
         this.agingSystem(adjustedDelta);
-        this.targetVisualizationSystem(this.world);
         this.cameraSystem();
+        this.targetVisualizationSystem(this.world);
         this.renderSystem();
 
         // Handle food spawning

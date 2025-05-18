@@ -18,7 +18,7 @@ export const App: React.FC = () => {
     antCount: 0,
     simulationSpeed: 1,
     spawnRate: INITIAL_SPAWN_RATE,
-    showTargets: true,
+    showTargets: false,
   });
 
   useEffect(() => {
