@@ -1,15 +1,6 @@
-import {
-  Age,
-  PlayerControlled,
-  Position,
-  Velocity,
-  ForagerRole,
-  Target,
-  AntState,
-} from "@/game/components";
+import { Age, PlayerControlled } from "@/game/components";
 import { ANT_AGE_INCREMENT } from "@/game/constants";
-import { type IWorld, defineQuery, removeComponent } from "bitecs";
-import { Sprite } from "pixi.js";
+import { type IWorld, defineQuery, removeEntity } from "bitecs";
 
 export const AgingSystem = (world: IWorld) => {
   const query = defineQuery([Age]);
@@ -24,15 +15,8 @@ export const AgingSystem = (world: IWorld) => {
       if (Age.currentAge[eid] >= Age.maxAge[eid]) {
         // Don't kill player ant
         if (PlayerControlled.isPlayer[eid] === 0) {
-          // Remove all components
-          removeComponent(world, Position, eid);
-          removeComponent(world, Velocity, eid);
-          removeComponent(world, Sprite, eid);
-          removeComponent(world, PlayerControlled, eid);
-          removeComponent(world, ForagerRole, eid);
-          removeComponent(world, Target, eid);
-          removeComponent(world, AntState, eid);
-          removeComponent(world, Age, eid);
+          // Remove the entire entity instead of individual components
+          removeEntity(world, eid);
         }
       }
     }

@@ -5,9 +5,8 @@ import {
   Target,
   PlayerControlled,
   Nest,
-  Sprite,
 } from "@/game/components";
-import { removeComponent, defineQuery } from "bitecs";
+import { defineQuery, removeEntity } from "bitecs";
 import type { IWorld } from "bitecs";
 import {
   FOOD_DETECTION_RANGE,
@@ -53,10 +52,8 @@ const pickupFood = (ant: number, food: number, world: IWorld) => {
   ForagerRole.state[ant] = 1; // Switch to CarryFood
   ForagerRole.foodCarried[ant] = 1;
 
-  // Remove food entity immediately
-  removeComponent(world, Position, food);
-  removeComponent(world, Sprite, food);
-  removeComponent(world, Food, food);
+  // Remove food entity completely
+  removeEntity(world, food);
 };
 
 const handleFindFoodState = (

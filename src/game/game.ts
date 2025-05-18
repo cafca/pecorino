@@ -18,7 +18,7 @@ import {
   AgingSystem,
 } from "../systems";
 import { TargetVisualizationSystem } from "../systems/TargetVisualizationSystem";
-import { INITIAL_SPAWN_RATE } from "./constants";
+import { INITIAL_SPAWN_RATE, WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
 import { MapLoader } from "./mapLoader";
 import { createAnt } from "./prefabs/ant";
 import { createFood } from "./prefabs/food";
@@ -77,13 +77,6 @@ export class Game {
     createCamera(this.world);
 
     this.cameraSystem = CameraSystem(this.gameContainer);
-
-    // Make game instance available globally for camera system
-    Object.defineProperty(globalThis, "game", {
-      value: this,
-      writable: false,
-      configurable: true,
-    });
   }
 
   private async initAssets() {
@@ -239,6 +232,9 @@ export class Game {
     game.initMap();
     game.initGameLoop();
     game.initResizeHandler();
+
+    // Make game instance available globally for camera system
+    window.game = game;
 
     return game;
   }
