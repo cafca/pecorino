@@ -59,6 +59,7 @@ export enum AntStateType {
   CARRYING_FOOD = 3,
   RETURNING_TO_NEST = 4,
   PLAYER_CONTROLLED = 5,
+  PICKING_UP_FOOD = 6,
 }
 
 export const AntState = defineComponent({

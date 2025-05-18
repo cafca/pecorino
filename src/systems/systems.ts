@@ -420,6 +420,9 @@ export const AntStateSystem = (world: IWorld) => {
         AntState.currentState[eid] = AntStateType.PLAYER_CONTROLLED;
       } else if (ForagerRole.foodCarried[eid] === 1) {
         AntState.currentState[eid] = AntStateType.CARRYING_FOOD;
+      } else if (AntState.currentState[eid] === AntStateType.PICKING_UP_FOOD) {
+        // Keep PICKING_UP_FOOD state until food is picked up or lost
+        // The ForageBehaviorSystem will handle transitioning out of this state
       } else if (Velocity.x[eid] !== 0 || Velocity.y[eid] !== 0) {
         const pheromoneValue =
           (

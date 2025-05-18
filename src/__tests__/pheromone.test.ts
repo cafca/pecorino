@@ -9,11 +9,14 @@ import {
   ForagerRole,
   Target,
   Food,
+  AntState,
+  AntStateType,
 } from "../game/components";
 import {
   PheromoneDepositSystem,
   PheromoneFollowSystem,
   ForageBehaviorSystem,
+  AntStateSystem,
 } from "../systems/systems";
 import type { PheromoneFollowDebugInfo } from "../systems/systems";
 
@@ -151,6 +154,79 @@ describe("Foraging System", () => {
     }
 
     expect(foodReached).toBe(true);
+  });
+
+  test("ant gives up picking up food after timeout", () => {
+    // Create an ant at (0,0)
+    const ant = addEntity(world);
+    addComponent(world, Position, ant);
+    addComponent(world, Velocity, ant);
+    addComponent(world, PheromoneEmitter, ant);
+    addComponent(world, PheromoneSensor, ant);
+    addComponent(world, ForagerRole, ant);
+    addComponent(world, Target, ant);
+    addComponent(world, AntState, ant);
+
+    Position.x[ant] = 0;
+    Position.y[ant] = 0;
+    Velocity.x[ant] = 0;
+    Velocity.y[ant] = 0;
+    PheromoneEmitter.strength[ant] = 1.0;
+    PheromoneEmitter.isEmitting[ant] = 0;
+    PheromoneSensor.radius[ant] = 20;
+    PheromoneSensor.sensitivity[ant] = 0.5;
+    ForagerRole.state[ant] = 0;
+    ForagerRole.foodCarried[ant] = 0;
+    AntState.currentState[ant] = 0;
+
+    // Place food just inside detection range but outside pickup range
+    // FOOD_DETECTION_RANGE = 50, FOOD_PICKUP_RANGE = 20
+    // Place food at (30, 0)
+    const food = addEntity(world);
+    addComponent(world, Position, food);
+    addComponent(world, Food, food);
+    Position.x[food] = 30;
+    Position.y[food] = 0;
+    Food.amount[food] = 1;
+
+    const pheromoneDepositSystem = PheromoneDepositSystem(grid)(world);
+    const pheromoneFollowSystem = PheromoneFollowSystem(grid)(world);
+    const forageBehaviorSystem = ForageBehaviorSystem(world);
+    const antStateSystem = AntStateSystem(world);
+
+    // Run systems for a few frames to get the ant into PICKING_UP_FOOD state
+    let enteredPickingUpFood = false;
+    for (let i = 0; i < 10; i++) {
+      pheromoneDepositSystem();
+      pheromoneFollowSystem();
+      forageBehaviorSystem();
+      antStateSystem();
+      grid.update(0.1);
+      if (AntState.currentState[ant] === AntStateType.PICKING_UP_FOOD) {
+        enteredPickingUpFood = true;
+        break;
+      }
+    }
+    expect(enteredPickingUpFood).toBe(true);
+    expect(AntState.currentState[ant]).toBe(AntStateType.PICKING_UP_FOOD);
+
+    // Move food out of range to simulate another ant taking it
+    Position.x[food] = 1000;
+    Position.y[food] = 1000;
+
+    // Run systems for enough time to trigger the timeout
+    // FOOD_PICKUP_TIMEOUT is 3000ms, so we'll run for 4 seconds worth of frames
+    for (let i = 0; i < 40; i++) {
+      pheromoneDepositSystem();
+      pheromoneFollowSystem();
+      forageBehaviorSystem();
+      antStateSystem();
+      grid.update(0.1);
+    }
+
+    // Verify ant has given up and is now exploring
+    expect(AntState.currentState[ant]).toBe(AntStateType.EXPLORING);
+    expect(Target.type[ant]).toBe(2); // Should be exploration target
   });
 });
 

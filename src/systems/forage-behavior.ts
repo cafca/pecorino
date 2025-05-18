@@ -7,12 +7,32 @@ import {
   PlayerControlled,
   PheromoneEmitter,
   Nest,
+  AntState,
+  AntStateType,
 } from "@/game/components";
 import { removeComponent, defineQuery } from "bitecs";
 import { Sprite } from "pixi.js";
 
 import type { IWorld } from "bitecs";
 import { PheromoneGrid } from "../game/pheromoneGrid";
+import {
+  FOOD_DETECTION_RANGE,
+  FOOD_PICKUP_RANGE,
+  FOOD_PICKUP_TIMEOUT,
+  NEST_RADIUS,
+  EXPLORATION_RADIUS,
+  EXPLORATION_TARGET_TIMEOUT,
+  EXPLORATION_TARGET_REACHED_DISTANCE,
+} from "../game/constants";
+
+// Track exploration targets and their timestamps
+const explorationTargets = new Map<
+  number,
+  { timestamp: number; targetX: number; targetY: number }
+>();
+
+// Track food pickup attempts and their timestamps
+const foodPickupAttempts = new Map<number, number>();
 
 // Helper functions for ForageBehaviorSystem
 const findNearestFood = (x: number, y: number, foods: number[]) => {
@@ -67,12 +87,6 @@ const moveTowardsTarget = (
   }
 };
 
-// Track exploration targets and their timestamps
-const explorationTargets = new Map<
-  number,
-  { timestamp: number; targetX: number; targetY: number }
->();
-
 const handleFindFoodState = (
   ant: number,
   x: number,
@@ -83,25 +97,64 @@ const handleFindFoodState = (
 ) => {
   const { nearestFood, minDist } = findNearestFood(x, y, foods);
 
-  // Only set target to food if we're very close to it
-  if (nearestFood !== null && minDist < 50) {
+  // If we're in PICKING_UP_FOOD state but no food is nearby, give up
+  if (
+    AntState.currentState[ant] === AntStateType.PICKING_UP_FOOD &&
+    (nearestFood === null || minDist >= FOOD_DETECTION_RANGE)
+  ) {
+    console.log("Food no longer available, giving up");
+    foodPickupAttempts.delete(ant);
+    AntState.currentState[ant] = AntStateType.EXPLORING;
+    Target.type[ant] = 2; // Switch to exploration target
+    return;
+  }
+
+  // Set target to food if we can see it within a reasonable range
+  if (nearestFood !== null && minDist < FOOD_DETECTION_RANGE) {
     // For AI ants, set target to food
     if (!isPlayer) {
       Target.x[ant] = Position.x[nearestFood];
       Target.y[ant] = Position.y[nearestFood];
       Target.type[ant] = 0; // Food target
       explorationTargets.delete(ant); // Clear exploration target when food is found
+
+      // Set state to PICKING_UP_FOOD when approaching food
+      AntState.currentState[ant] = AntStateType.PICKING_UP_FOOD;
+
+      // Record the start time of the pickup attempt if not already recorded
+      if (!foodPickupAttempts.has(ant)) {
+        foodPickupAttempts.set(ant, Date.now());
+      }
     }
 
     // If close enough to food, pick it up
-    if (minDist < 10) {
+    if (minDist < FOOD_PICKUP_RANGE) {
       pickupFood(ant, nearestFood, world);
       const remainingFood = foods.length - 1;
       console.log(`Food picked up! ${remainingFood} food items remaining.`);
+      foodPickupAttempts.delete(ant); // Clear the pickup attempt record
     }
+  } else {
+    // If we're not near food anymore, clear the pickup attempt
+    foodPickupAttempts.delete(ant);
   }
 
-  const currentTime = Date.now();
+  // Check for timeout on food pickup attempts
+  const pickupCurrentTime = Date.now();
+  const pickupStartTime = foodPickupAttempts.get(ant);
+  if (
+    pickupStartTime &&
+    pickupCurrentTime - pickupStartTime > FOOD_PICKUP_TIMEOUT
+  ) {
+    // Timeout reached, give up on this food
+    console.log("Food pickup timeout reached, giving up");
+    foodPickupAttempts.delete(ant);
+    AntState.currentState[ant] = AntStateType.EXPLORING;
+    Target.type[ant] = 2; // Switch to exploration target
+  }
+
+  // Only look for new exploration target if we're not already close to food
+  const explorationCurrentTime = Date.now();
   const currentTarget = explorationTargets.get(ant);
   const targetX = Target.x[ant];
   const targetY = Target.y[ant];
@@ -109,14 +162,15 @@ const handleFindFoodState = (
   // Check if we need a new exploration target
   const needsNewTarget =
     !currentTarget ||
-    currentTime - currentTarget.timestamp > 5000 || // Target expires after 5 seconds
-    Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2)) < 20; // Target reached
+    explorationCurrentTime - currentTarget.timestamp >
+      EXPLORATION_TARGET_TIMEOUT || // Target expires after timeout
+    Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2)) <
+      EXPLORATION_TARGET_REACHED_DISTANCE;
 
   if (needsNewTarget) {
     // If no food nearby, explore randomly within map bounds
-    const exploreRadius = 200;
     const angle = Math.random() * Math.PI * 2;
-    const distance = Math.random() * exploreRadius;
+    const distance = Math.random() * EXPLORATION_RADIUS;
 
     // Calculate new target position
     let newTargetX = x + Math.cos(angle) * distance;
@@ -140,7 +194,7 @@ const handleFindFoodState = (
 
     // Store the new target and its timestamp
     explorationTargets.set(ant, {
-      timestamp: currentTime,
+      timestamp: explorationCurrentTime,
       targetX: newTargetX,
       targetY: newTargetY,
     });
@@ -164,8 +218,7 @@ const handleCarryFoodState = (
 
   // If at nest, deposit food
   const distToNest = Math.sqrt(x * x + y * y);
-  const nestRadius = 48;
-  if (distToNest < nestRadius) {
+  if (distToNest < NEST_RADIUS) {
     ForagerRole.state[ant] = 0; // Switch back to FindFood
     ForagerRole.foodCarried[ant] = 0;
     PheromoneEmitter.isEmitting[ant] = 0; // Stop emitting pheromones
