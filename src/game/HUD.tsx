@@ -6,9 +6,11 @@ interface HUDProps {
   antCount: number;
   simulationSpeed: number;
   spawnRate: number;
+  showTargets: boolean;
   onSpeedToggle: () => void;
   onSpawnRateChange: (rate: number) => void;
   onAntCountChange: (count: number) => void;
+  onToggleTargets: () => void;
 }
 
 export const HUD: React.FC<HUDProps> = ({
@@ -17,9 +19,11 @@ export const HUD: React.FC<HUDProps> = ({
   antCount,
   simulationSpeed,
   spawnRate,
+  showTargets,
   onSpeedToggle,
   onSpawnRateChange,
   onAntCountChange,
+  onToggleTargets,
 }) => {
   return (
     <div
@@ -100,19 +104,34 @@ export const HUD: React.FC<HUDProps> = ({
             }}
           />
         </div>
-        <button
-          onClick={onSpeedToggle}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "#4CAF50",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          Speed: {simulationSpeed}x
-        </button>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button
+            onClick={onSpeedToggle}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#4CAF50",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Speed: {simulationSpeed}x
+          </button>
+          <button
+            onClick={onToggleTargets}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: showTargets ? "#4CAF50" : "#666",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            {showTargets ? "Hide Targets" : "Show Targets"}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ export const App: React.FC = () => {
     antCount: 0,
     simulationSpeed: 1,
     spawnRate: 5,
+    showTargets: true,
   });
 
   useEffect(() => {
@@ -61,6 +62,13 @@ export const App: React.FC = () => {
   const handleAntCountChange = (count: number) => {
     if (game) {
       game.setAntCount(count);
+      setHudState(game.getHUDState());
+    }
+  };
+
+  const handleToggleTargets = () => {
+    if (game) {
+      game.toggleTargetVisualization();
       setHudState(game.getHUDState());
     }
   };
@@ -111,9 +119,11 @@ export const App: React.FC = () => {
           antCount={hudState.antCount}
           simulationSpeed={hudState.simulationSpeed}
           spawnRate={hudState.spawnRate}
+          showTargets={hudState.showTargets}
           onSpeedToggle={handleSpeedToggle}
           onSpawnRateChange={handleSpawnRateChange}
           onAntCountChange={handleAntCountChange}
+          onToggleTargets={handleToggleTargets}
         />
         <LiveGraph
           foodInWorld={hudState.foodInWorld}

@@ -5,7 +5,7 @@ import {
   defineQuery,
   removeComponent,
 } from "bitecs";
-import { Application, Assets, Container } from "pixi.js";
+import { Application, Assets, Container, Graphics } from "pixi.js";
 import { CompositeTilemap } from "@pixi/tilemap";
 import {
   Position,
@@ -18,6 +18,7 @@ import {
   AntState,
   Nest,
   Age,
+  TargetVisualization,
 } from "./components";
 import {
   InputSystem,
@@ -27,8 +28,10 @@ import {
   AntStateSystem,
   AgingSystem,
 } from "../systems";
+import { TargetVisualizationSystem } from "../systems/TargetVisualizationSystem";
 import { ANT_MAX_AGE } from "./constants";
 import { MapLoader } from "./mapLoader";
+import type { IWorld } from "bitecs";
 
 export class Game {
   public readonly world = createWorld();
@@ -40,15 +43,18 @@ export class Game {
   private forageBehaviorSystem: () => void;
   private antStateSystem: () => void;
   private agingSystem: (delta: number) => void;
+  private targetVisualizationSystem: (world: IWorld) => void;
   private playerQuery = defineQuery([Position, PlayerControlled]);
   private antQuery = defineQuery([Position, ForagerRole]);
   private simulationSpeed = 1;
   private spawnTimer = 0;
   private spawnRate = 5; // seconds between spawns
   private tilemap!: CompositeTilemap;
-  private mapWidth = 0;
-  private mapHeight = 0;
-  private gameContainer!: Container; // Add this line
+  public mapWidth = 0;
+  public mapHeight = 0;
+  private gameContainer!: Container;
+  private targetGraphics: Graphics;
+  private showTargets = true;
 
   // HUD state
   private colonyFood = 0;
@@ -63,6 +69,13 @@ export class Game {
     this.forageBehaviorSystem = ForageBehaviorSystem(this.world);
     this.antStateSystem = AntStateSystem(this.world);
     this.agingSystem = AgingSystem(this.world);
+
+    // Create graphics for target visualization
+    this.targetGraphics = new Graphics();
+    this.targetVisualizationSystem = TargetVisualizationSystem(
+      this.targetGraphics,
+      this
+    );
 
     // Get reference to the game container from render system
     this.gameContainer = this.app.stage.children[0] as Container;
@@ -115,6 +128,7 @@ export class Game {
     addComponent(this.world, Target, ant);
     addComponent(this.world, AntState, ant);
     addComponent(this.world, Age, ant);
+    addComponent(this.world, TargetVisualization, ant);
 
     // Set initial values
     Position.x[ant] = x;
@@ -138,6 +152,7 @@ export class Game {
     Age.maxAge[ant] = ANT_MAX_AGE;
     Age.currentAge[ant] =
       initialAge !== undefined ? initialAge : Math.random() * 0.5 * ANT_MAX_AGE;
+    TargetVisualization.visible[ant] = this.showTargets ? 1 : 0;
 
     return ant;
   }
@@ -179,6 +194,9 @@ export class Game {
   }
 
   private initDemo() {
+    // Add target graphics to game container
+    this.gameContainer.addChild(this.targetGraphics);
+
     // Create nest at (0,0)
     this.createNest();
 
@@ -223,6 +241,7 @@ export class Game {
         this.forageBehaviorSystem();
         this.antStateSystem();
         this.agingSystem(adjustedDelta);
+        this.targetVisualizationSystem(this.world);
         this.renderSystem();
 
         // Handle food spawning
@@ -318,6 +337,7 @@ export class Game {
       antCount: this.antCount,
       simulationSpeed: this.simulationSpeed,
       spawnRate: this.spawnRate,
+      showTargets: this.showTargets,
     };
   }
 
@@ -382,5 +402,14 @@ export class Game {
     const y = center.y + Math.sin(angle) * distance;
 
     this.createFood(x, y);
+  }
+
+  public toggleTargetVisualization() {
+    this.showTargets = !this.showTargets;
+    const targetQuery = defineQuery([TargetVisualization]);
+    const entities = targetQuery(this.world);
+    entities.forEach((eid) => {
+      TargetVisualization.visible[eid] = this.showTargets ? 1 : 0;
+    });
   }
 }

@@ -60,3 +60,7 @@ export const Age = defineComponent({
   currentAge: Types.f32,
   maxAge: Types.f32,
 });
+
+export const TargetVisualization = defineComponent({
+  visible: Types.ui8, // 0 or 1
+});
