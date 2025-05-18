@@ -5,7 +5,6 @@ import {
   Container,
   Sprite as PixiSprite,
   Assets,
-  Graphics,
   Text,
 } from "pixi.js";
 import {
@@ -27,19 +26,6 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
   const sprites = new Map<number, PixiSprite>();
   const labels = new Map<number, Text>();
   const container = new Container();
-
-  const initializeBackground = () => {
-    const background = new Graphics();
-    background.beginFill(0xeeda94); // Sand color
-    background.drawRect(
-      -app.screen.width / 2,
-      -app.screen.height / 2,
-      app.screen.width,
-      app.screen.height
-    );
-    background.endFill();
-    container.addChild(background);
-  };
 
   const createSprite = (eid: number) => {
     let texture;
@@ -144,7 +130,6 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
 
   // Initialize
   app.stage.addChild(container);
-  initializeBackground();
   container.position.set(app.screen.width / 2, app.screen.height / 2);
 
   return () => {
