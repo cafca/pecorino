@@ -9,9 +9,11 @@ import {
   Nest,
   AntState,
   AntStateType,
+  PheromoneSensor,
+  Sprite,
 } from "@/game/components";
-import { removeComponent, defineQuery } from "bitecs";
-import { Sprite } from "pixi.js";
+import { removeComponent, defineQuery, addEntity, addComponent } from "bitecs";
+import { Sprite as PixiSprite } from "pixi.js";
 
 import type { IWorld } from "bitecs";
 import { PheromoneGrid } from "../game/pheromoneGrid";
@@ -61,7 +63,7 @@ const pickupFood = (ant: number, food: number, world: IWorld) => {
   // Remove food entity if amount reaches 0
   if (Food.amount[food] <= 0) {
     removeComponent(world, Position, food);
-    removeComponent(world, Sprite, food);
+    removeComponent(world, PixiSprite, food);
     removeComponent(world, Food, food);
   }
 };
@@ -229,6 +231,48 @@ const handleCarryFoodState = (
     if (nests.length > 0) {
       const nest = nests[0];
       Nest.foodCount[nest] += 1;
+
+      // If we've collected 5 food items, spawn a new ant
+      if (Nest.foodCount[nest] >= 5) {
+        // Create new ant at nest location
+        const newAnt = addEntity(world);
+        addComponent(world, Position, newAnt);
+        addComponent(world, Velocity, newAnt);
+        addComponent(world, Sprite, newAnt);
+        addComponent(world, PlayerControlled, newAnt);
+        addComponent(world, PheromoneEmitter, newAnt);
+        addComponent(world, PheromoneSensor, newAnt);
+        addComponent(world, ForagerRole, newAnt);
+        addComponent(world, Target, newAnt);
+        addComponent(world, AntState, newAnt);
+
+        // Set initial values for new ant
+        Position.x[newAnt] = 0;
+        Position.y[newAnt] = 0;
+        Velocity.x[newAnt] = 0;
+        Velocity.y[newAnt] = 0;
+        PlayerControlled.speed[newAnt] = 100;
+        PlayerControlled.isPlayer[newAnt] = 0;
+        Sprite.texture[newAnt] = 0; // ant texture
+        Sprite.width[newAnt] = 32;
+        Sprite.height[newAnt] = 32;
+        Sprite.scale[newAnt] = 0.1;
+        PheromoneEmitter.strength[newAnt] = 1.0;
+        PheromoneEmitter.isEmitting[newAnt] = 0;
+        PheromoneSensor.radius[newAnt] = 50;
+        PheromoneSensor.sensitivity[newAnt] = 0.5;
+        ForagerRole.state[newAnt] = 0;
+        ForagerRole.foodCarried[newAnt] = 0;
+        Target.x[newAnt] = 0;
+        Target.y[newAnt] = 0;
+        Target.type[newAnt] = 0;
+        AntState.currentState[newAnt] = 0;
+        AntState.previousState[newAnt] = 0;
+        AntState.stateTimer[newAnt] = 0;
+
+        // Reset food count in nest
+        Nest.foodCount[nest] = 0;
+      }
     }
 
     console.log("Food deposited at nest!");
