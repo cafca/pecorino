@@ -14,10 +14,7 @@ export const MovementSystem = (world: IWorld) => {
     const gridDimensionX = window.innerWidth;
     const gridDimensionY = window.innerHeight;
 
-    // If no grid is available, use default boundaries
-    const distanceToEdgeX = gridDimensionX / 2;
-    const distanceToEdgeY = gridDimensionY / 2;
-
+    // Use screen dimensions directly as boundaries
     for (const eid of entities) {
       // If the ant is an NPC and has a current target, set
       // its velocity towards the target.
@@ -37,34 +34,26 @@ export const MovementSystem = (world: IWorld) => {
       let newX = Position.x[eid] + Velocity.x[eid] * delta;
       let newY = Position.y[eid] + Velocity.y[eid] * delta;
 
-      // Handle boundaries with exact values
-      if (newX <= -distanceToEdgeX) {
-        newX = -distanceToEdgeX;
+      // Handle boundaries with screen coordinates
+      if (newX <= 0) {
+        newX = 0;
         Velocity.x[eid] = 0;
-      } else if (newX >= distanceToEdgeX) {
-        newX = distanceToEdgeX;
+      } else if (newX >= gridDimensionX) {
+        newX = gridDimensionX;
         Velocity.x[eid] = 0;
       }
 
-      if (newY <= -distanceToEdgeY) {
-        newY = -distanceToEdgeY;
+      if (newY <= 0) {
+        newY = 0;
         Velocity.y[eid] = 0;
-      } else if (newY >= distanceToEdgeY) {
-        newY = distanceToEdgeY;
+      } else if (newY >= gridDimensionY) {
+        newY = gridDimensionY;
         Velocity.y[eid] = 0;
       }
 
-      // Update positions with exact values for test cases
-      if (
-        Math.abs(newX) === distanceToEdgeX ||
-        Math.abs(newY) === distanceToEdgeY
-      ) {
-        Position.x[eid] = Math.sign(newX) * distanceToEdgeX;
-        Position.y[eid] = Math.sign(newY) * distanceToEdgeY;
-      } else {
-        Position.x[eid] = newX;
-        Position.y[eid] = newY;
-      }
+      // Update positions
+      Position.x[eid] = newX;
+      Position.y[eid] = newY;
     }
   };
 };

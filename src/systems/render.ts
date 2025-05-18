@@ -130,7 +130,7 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
 
   // Initialize
   app.stage.addChild(container);
-  container.position.set(app.screen.width / 2, app.screen.height / 2);
+  container.position.set(0, 0);
 
   return () => {
     handleNewEntities(enter(world));

@@ -50,8 +50,8 @@ export class Game {
   private spawnTimer = 0;
   private spawnRate = 5; // seconds between spawns
   private tilemap!: CompositeTilemap;
-  public mapWidth = 0;
-  public mapHeight = 0;
+  private mapWidth = 0;
+  private mapHeight = 0;
   private gameContainer!: Container;
   private targetGraphics: Graphics;
   private showTargets = true;
@@ -73,8 +73,7 @@ export class Game {
     // Create graphics for target visualization
     this.targetGraphics = new Graphics();
     this.targetVisualizationSystem = TargetVisualizationSystem(
-      this.targetGraphics,
-      this
+      this.targetGraphics
     );
 
     // Get reference to the game container from render system
@@ -197,26 +196,28 @@ export class Game {
     // Add target graphics to game container
     this.gameContainer.addChild(this.targetGraphics);
 
-    // Create nest at (0,0)
-    this.createNest();
+    // Create nest at center of screen
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    const nest = this.createNest();
+    Position.x[nest] = centerX;
+    Position.y[nest] = centerY;
 
-    // Create player ant
-    this.createAnt(0, 32, true);
+    // Create player ant slightly below nest
+    this.createAnt(centerX, centerY + 32, true);
 
     // Create 4 AI ants in random positions around center
     for (let i = 0; i < 4; i++) {
-      const radius = Math.random() * 75; // Random radius up to 75 pixels (25% of previous 300)
+      const radius = Math.random() * 75; // Random radius up to 75 pixels
       const angle = Math.random() * Math.PI * 2; // Random angle
-      const x = Math.cos(angle) * radius; // Convert to x coordinate
-      const y = Math.sin(angle) * radius; // Convert to y coordinate
+      const x = centerX + Math.cos(angle) * radius; // Convert to x coordinate
+      const y = centerY + Math.sin(angle) * radius; // Convert to y coordinate
       this.createAnt(x, y, false);
     }
 
     // Create 5 food items at random positions
     for (let i = 0; i < 5; i++) {
-      const x = (Math.random() - 0.5) * 800;
-      const y = (Math.random() - 0.5) * 800;
-      this.createFood(x, y);
+      this.spawnRandomFood();
     }
   }
 
@@ -382,13 +383,11 @@ export class Game {
   }
 
   private spawnRandomFood() {
-    // Create food clusters around specific locations
-    const clusterCenters = [
-      { x: 100, y: 100 },
-      { x: -100, y: 100 },
-      { x: 100, y: -100 },
-      { x: -100, y: -100 },
-    ];
+    // Food clusters at random locations within the screen
+    const clusterCenters = Array.from({ length: 4 }, () => ({
+      x: Math.random() * (window.innerWidth - 100) + 50,
+      y: Math.random() * (window.innerHeight - 100) + 50,
+    }));
 
     // Pick a random cluster center
     const center =

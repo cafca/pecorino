@@ -124,43 +124,43 @@ describe("MovementSystem", () => {
     addComponent(world, Velocity, entity);
 
     // Test right boundary
-    Position.x[entity] = 390; // Just inside right boundary
+    Position.x[entity] = 790; // Just inside right boundary
     Position.y[entity] = 0;
     Velocity.x[entity] = 100; // Moving right
     Velocity.y[entity] = 0;
 
     movementSystem(1.0);
-    expect(Position.x[entity]).toBe(400); // Should stop at boundary
+    expect(Position.x[entity]).toBe(800); // Should stop at boundary
     expect(Velocity.x[entity]).toBe(0); // Velocity should be zeroed
 
     // Test left boundary
-    Position.x[entity] = -390; // Just inside left boundary
+    Position.x[entity] = 10; // Just inside left boundary
     Position.y[entity] = 0;
     Velocity.x[entity] = -100; // Moving left
     Velocity.y[entity] = 0;
 
     movementSystem(1.0);
-    expect(Position.x[entity]).toBe(-400); // Should stop at boundary
+    expect(Position.x[entity]).toBe(0); // Should stop at boundary
     expect(Velocity.x[entity]).toBe(0); // Velocity should be zeroed
 
     // Test bottom boundary
     Position.x[entity] = 0;
-    Position.y[entity] = 290; // Just inside bottom boundary
+    Position.y[entity] = 590; // Just inside bottom boundary
     Velocity.x[entity] = 0;
     Velocity.y[entity] = 100; // Moving down
 
     movementSystem(1.0);
-    expect(Position.y[entity]).toBe(300); // Should stop at boundary
+    expect(Position.y[entity]).toBe(600); // Should stop at boundary
     expect(Velocity.y[entity]).toBe(0); // Velocity should be zeroed
 
     // Test top boundary
     Position.x[entity] = 0;
-    Position.y[entity] = -290; // Just inside top boundary
+    Position.y[entity] = 10; // Just inside top boundary
     Velocity.x[entity] = 0;
     Velocity.y[entity] = -100; // Moving up
 
     movementSystem(1.0);
-    expect(Position.y[entity]).toBe(-300); // Should stop at boundary
+    expect(Position.y[entity]).toBe(0); // Should stop at boundary
     expect(Velocity.y[entity]).toBe(0); // Velocity should be zeroed
   });
 
@@ -170,14 +170,14 @@ describe("MovementSystem", () => {
     addComponent(world, Velocity, entity);
 
     // Test diagonal movement into corner
-    Position.x[entity] = 390; // Near right boundary
-    Position.y[entity] = 290; // Near bottom boundary
+    Position.x[entity] = 790; // Near right boundary
+    Position.y[entity] = 590; // Near bottom boundary
     Velocity.x[entity] = 100; // Moving right
     Velocity.y[entity] = 100; // Moving down
 
     movementSystem(1.0);
-    expect(Position.x[entity]).toBe(400); // Should stop at right boundary
-    expect(Position.y[entity]).toBe(300); // Should stop at bottom boundary
+    expect(Position.x[entity]).toBe(800); // Should stop at right boundary
+    expect(Position.y[entity]).toBe(600); // Should stop at bottom boundary
     expect(Velocity.x[entity]).toBe(0); // X velocity should be zeroed
     expect(Velocity.y[entity]).toBe(0); // Y velocity should be zeroed
   });

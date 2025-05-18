@@ -2,9 +2,8 @@ import { defineQuery } from "bitecs";
 import type { IWorld } from "bitecs";
 import { Graphics } from "pixi.js";
 import { Position, Target, TargetVisualization } from "../game/components";
-import { Game } from "../game/game";
 
-export const TargetVisualizationSystem = (graphics: Graphics, game: Game) => {
+export const TargetVisualizationSystem = (graphics: Graphics) => {
   const targetQuery = defineQuery([Position, Target, TargetVisualization]);
 
   return (world: IWorld) => {
@@ -28,7 +27,7 @@ export const TargetVisualizationSystem = (graphics: Graphics, game: Game) => {
         graphics.moveTo(startX, startY);
         graphics.lineTo(endX, endY);
 
-        console.log("Drawing line from", startX, startY, "to", endX, endY);
+        // console.log("Drawing line from", startX, startY, "to", endX, endY);
       }
     });
   };

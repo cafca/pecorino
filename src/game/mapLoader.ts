@@ -98,7 +98,7 @@ export class MapLoader {
     // Create a container for the map
     const mapContainer = new Container();
     gameContainer.addChild(mapContainer);
-    mapContainer.position.set(-mapWidth / 2, -mapHeight / 2);
+    mapContainer.position.set(0, 0);
 
     // Get tileset properties
     const { tileWidth, tileHeight, columns } = this.parseTileset(tilesetElem);

@@ -107,13 +107,19 @@ const handleFindFoodState = (
       let newTargetX = x + Math.cos(angle) * distance;
       let newTargetY = y + Math.sin(angle) * distance;
 
-      // Use dynamic map bounds from game
-      const halfWidth = (window.game as Game)?.mapWidth / 2 || 400;
-      const halfHeight = (window.game as Game)?.mapHeight / 2 || 300;
-
-      // Clamp target position to map bounds
-      newTargetX = Math.max(-halfWidth, Math.min(halfWidth, newTargetX));
-      newTargetY = Math.max(-halfHeight, Math.min(halfHeight, newTargetY));
+      // If the target is outside the screen, move it back inside
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      if (newTargetX < 0) {
+        newTargetX = 0;
+      } else if (newTargetX > screenWidth) {
+        newTargetX = screenWidth;
+      }
+      if (newTargetY < 0) {
+        newTargetY = 0;
+      } else if (newTargetY > screenHeight) {
+        newTargetY = screenHeight;
+      }
 
       Target.x[ant] = newTargetX;
       Target.y[ant] = newTargetY;
