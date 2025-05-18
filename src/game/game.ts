@@ -54,6 +54,7 @@ export class Game {
   private gameContainer: Container;
   private targetGraphics: Graphics;
   private showTargets = DEFAULT_SHOW_TARGETS;
+  private mapLoader: MapLoader;
 
   // HUD state
   private colonyFood = 0;
@@ -81,6 +82,8 @@ export class Game {
       this.targetGraphics
     );
 
+    this.mapLoader = new MapLoader(this.world);
+
     // Initialize camera using the prefab
     createCamera(this.world);
     this.cameraSystem = CameraSystem(this.world, this.gameContainer);
@@ -101,8 +104,12 @@ export class Game {
       src: "/assets/sprites/nest.png",
     });
     Assets.add({
+      alias: "tree",
+      src: "/assets/sprites/tree.png",
+    });
+    Assets.add({
       alias: "map",
-      src: "/assets/maps/map01.json",
+      src: "/assets/maps/map02.json",
     });
     Assets.add({
       alias: "tilesheet",
@@ -114,7 +121,15 @@ export class Game {
     });
 
     // Load all assets
-    await Assets.load(["ant", "food", "nest", "map", "tileset", "tilesheet"]);
+    await Assets.load([
+      "ant",
+      "food",
+      "map",
+      "nest",
+      "tileset",
+      "tilesheet",
+      "tree",
+    ]);
   }
 
   public createAnt(
@@ -166,8 +181,7 @@ export class Game {
   }
 
   private async initMap() {
-    const mapLoader = new MapLoader();
-    const { width, height } = await mapLoader.loadMap(this.gameContainer);
+    const { width, height } = await this.mapLoader.loadMap(this.gameContainer);
     this.mapWidth = width;
     this.mapHeight = height;
   }
@@ -321,24 +335,34 @@ export class Game {
   }
 
   private spawnRandomFood() {
-    // Food clusters at random locations within the screen
-    const clusterCenters = Array.from({ length: 4 }, () => ({
-      x: Math.random() * (window.innerWidth - 100) + 50,
-      y: Math.random() * (window.innerHeight - 100) + 50,
-    }));
+    const spawnPoints = this.mapLoader.getFoodSpawnPoints();
 
-    // Pick a random cluster center
-    const center =
-      clusterCenters[Math.floor(Math.random() * clusterCenters.length)];
+    function closeTo(posX: number, posY: number): [number, number] {
+      const radius = 100;
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * radius;
+      const x = posX + Math.cos(angle) * distance;
+      const y = posY + Math.sin(angle) * distance;
+      return [x, y];
+    }
 
-    // Spawn food within a radius of the center
-    const radius = 25; // 25% of previous 100
-    const angle = Math.random() * Math.PI * 2;
-    const distance = Math.random() * radius;
-    const x = center.x + Math.cos(angle) * distance;
-    const y = center.y + Math.sin(angle) * distance;
+    if (spawnPoints.length === 0) {
+      console.log(
+        `No food spawn points defined, falling back to random spawning`
+      );
+    }
 
-    this.createFood(x, y);
+    const centers =
+      spawnPoints.length === 0
+        ? Array.from({ length: 4 }, () => ({
+            x: Math.random() * (window.innerWidth - 100) + 50,
+            y: Math.random() * (window.innerHeight - 100) + 50,
+          }))
+        : spawnPoints;
+
+    const center = centers[Math.floor(Math.random() * centers.length)];
+
+    this.createFood(...closeTo(center.x, center.y));
   }
 
   public toggleTargetVisualization() {

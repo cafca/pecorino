@@ -41,6 +41,8 @@ export const Nest = defineComponent({
   foodCount: Types.f32,
 });
 
+export const Tree = defineComponent({});
+
 export enum AntStateType {
   IDLE = 0,
   EXPLORING = 1,

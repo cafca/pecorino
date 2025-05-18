@@ -12,6 +12,7 @@ import {
   Food,
   Nest,
   TargetVisualization,
+  Tree,
 } from "@/game/components";
 
 export const PhysicsBundle = [Position, Velocity];
@@ -32,6 +33,8 @@ export const AntBundle = [
 export const FoodBundle = [...RenderBundle, Food] as const;
 
 export const NestBundle = [...RenderBundle, Nest] as const;
+
+export const TreeBundle = [...RenderBundle, Tree] as const;
 
 // Define a more specific type for component properties
 type ComponentProperties = {

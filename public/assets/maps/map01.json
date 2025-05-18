@@ -27,7 +27,6 @@
         12,
         12,
         12,
-        12,
         51,
         52,
         52,
@@ -615,10 +614,66 @@
       "width": 30,
       "x": 0,
       "y": 0
+    },
+    {
+      "id": 2,
+      "name": "FoodSpawns",
+      "objects": [
+        {
+          "height": 32,
+          "id": 1,
+          "name": "FoodSpawn1",
+          "type": "FoodSpawn",
+          "width": 32,
+          "x": 96,
+          "y": 96
+        },
+        {
+          "height": 32,
+          "id": 2,
+          "name": "FoodSpawn2",
+          "type": "FoodSpawn",
+          "width": 32,
+          "x": 864,
+          "y": 96
+        },
+        {
+          "height": 32,
+          "id": 3,
+          "name": "FoodSpawn3",
+          "type": "FoodSpawn",
+          "width": 32,
+          "x": 96,
+          "y": 544
+        },
+        {
+          "height": 32,
+          "id": 4,
+          "name": "FoodSpawn4",
+          "type": "FoodSpawn",
+          "width": 32,
+          "x": 864,
+          "y": 544
+        },
+        {
+          "height": 32,
+          "id": 5,
+          "name": "FoodSpawn5",
+          "type": "FoodSpawn",
+          "width": 32,
+          "x": 480,
+          "y": 320
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
     }
   ],
-  "nextlayerid": 2,
-  "nextobjectid": 1,
+  "nextlayerid": 3,
+  "nextobjectid": 6,
   "orientation": "orthogonal",
   "renderorder": "right-down",
   "tiledversion": "1.11.2",

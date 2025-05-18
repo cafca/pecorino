@@ -41,6 +41,9 @@ export const RenderSystem = (app: Application) => (world: IWorld) => {
       case 2:
         texture = "nest";
         break;
+      case 3:
+        texture = "tree";
+        break;
       default:
         console.warn(`Unknown texture for entity ${eid}`);
         texture = "ant";
