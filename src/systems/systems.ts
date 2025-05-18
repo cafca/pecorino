@@ -61,9 +61,42 @@ export const MovementSystem = (world: IWorld) => {
 
   return (delta: number) => {
     const entities = query(world);
+    const grid = (window as { game?: { pheromoneGrid: PheromoneGrid } }).game
+      ?.pheromoneGrid;
+
+    if (!grid) {
+      console.warn("No pheromone grid found in game instance");
+      return;
+    }
+
+    const halfWidth = grid.getGridWidth() / (2 * grid.getResolution());
+    const halfHeight = grid.getGridHeight() / (2 * grid.getResolution());
+
     for (const eid of entities) {
-      Position.x[eid] += Velocity.x[eid] * delta;
-      Position.y[eid] += Velocity.y[eid] * delta;
+      // Calculate new position
+      const newX = Position.x[eid] + Velocity.x[eid] * delta;
+      const newY = Position.y[eid] + Velocity.y[eid] * delta;
+
+      // Check boundaries and adjust if needed
+      if (newX < -halfWidth) {
+        Position.x[eid] = -halfWidth;
+        Velocity.x[eid] = 0;
+      } else if (newX > halfWidth) {
+        Position.x[eid] = halfWidth;
+        Velocity.x[eid] = 0;
+      } else {
+        Position.x[eid] = newX;
+      }
+
+      if (newY < -halfHeight) {
+        Position.y[eid] = -halfHeight;
+        Velocity.y[eid] = 0;
+      } else if (newY > halfHeight) {
+        Position.y[eid] = halfHeight;
+        Velocity.y[eid] = 0;
+      } else {
+        Position.y[eid] = newY;
+      }
     }
   };
 };

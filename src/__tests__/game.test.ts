@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import type { IWorld } from "bitecs";
 import {
   Position,
@@ -11,6 +11,7 @@ import {
 } from "../game/components";
 import { createWorld, addComponent, addEntity } from "bitecs";
 import { MovementSystem } from "../systems/systems";
+import { PheromoneGrid } from "../game/pheromoneGrid";
 
 describe("Game Components", () => {
   describe("Position", () => {
@@ -67,10 +68,19 @@ describe("Game Components", () => {
 describe("MovementSystem", () => {
   let world: IWorld;
   let movementSystem: (delta: number) => void;
+  let grid: PheromoneGrid;
 
   beforeEach(() => {
     world = createWorld();
+    grid = new PheromoneGrid(800, 600); // 800x600 window
+    (window as { game?: { pheromoneGrid: PheromoneGrid } }).game = {
+      pheromoneGrid: grid,
+    };
     movementSystem = MovementSystem(world);
+  });
+
+  afterEach(() => {
+    delete (window as { game?: { pheromoneGrid: PheromoneGrid } }).game;
   });
 
   it("should update position based on velocity and delta time", () => {
@@ -130,5 +140,69 @@ describe("MovementSystem", () => {
     expect(Position.y[entity1]).toBe(1);
     expect(Position.x[entity2]).toBe(9);
     expect(Position.y[entity2]).toBe(9);
+  });
+
+  it("should keep entities within grid boundaries", () => {
+    const entity = addEntity(world);
+    addComponent(world, Position, entity);
+    addComponent(world, Velocity, entity);
+
+    // Test right boundary
+    Position.x[entity] = 390; // Just inside right boundary
+    Position.y[entity] = 0;
+    Velocity.x[entity] = 100; // Moving right
+    Velocity.y[entity] = 0;
+
+    movementSystem(1.0);
+    expect(Position.x[entity]).toBe(400); // Should stop at boundary
+    expect(Velocity.x[entity]).toBe(0); // Velocity should be zeroed
+
+    // Test left boundary
+    Position.x[entity] = -390; // Just inside left boundary
+    Position.y[entity] = 0;
+    Velocity.x[entity] = -100; // Moving left
+    Velocity.y[entity] = 0;
+
+    movementSystem(1.0);
+    expect(Position.x[entity]).toBe(-400); // Should stop at boundary
+    expect(Velocity.x[entity]).toBe(0); // Velocity should be zeroed
+
+    // Test bottom boundary
+    Position.x[entity] = 0;
+    Position.y[entity] = 290; // Just inside bottom boundary
+    Velocity.x[entity] = 0;
+    Velocity.y[entity] = 100; // Moving down
+
+    movementSystem(1.0);
+    expect(Position.y[entity]).toBe(300); // Should stop at boundary
+    expect(Velocity.y[entity]).toBe(0); // Velocity should be zeroed
+
+    // Test top boundary
+    Position.x[entity] = 0;
+    Position.y[entity] = -290; // Just inside top boundary
+    Velocity.x[entity] = 0;
+    Velocity.y[entity] = -100; // Moving up
+
+    movementSystem(1.0);
+    expect(Position.y[entity]).toBe(-300); // Should stop at boundary
+    expect(Velocity.y[entity]).toBe(0); // Velocity should be zeroed
+  });
+
+  it("should handle diagonal movement at boundaries", () => {
+    const entity = addEntity(world);
+    addComponent(world, Position, entity);
+    addComponent(world, Velocity, entity);
+
+    // Test diagonal movement into corner
+    Position.x[entity] = 390; // Near right boundary
+    Position.y[entity] = 290; // Near bottom boundary
+    Velocity.x[entity] = 100; // Moving right
+    Velocity.y[entity] = 100; // Moving down
+
+    movementSystem(1.0);
+    expect(Position.x[entity]).toBe(400); // Should stop at right boundary
+    expect(Position.y[entity]).toBe(300); // Should stop at bottom boundary
+    expect(Velocity.x[entity]).toBe(0); // X velocity should be zeroed
+    expect(Velocity.y[entity]).toBe(0); // Y velocity should be zeroed
   });
 });
