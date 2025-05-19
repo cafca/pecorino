@@ -2,23 +2,7 @@
 
 A real-time ant colony simulation game where you control an ant and interact with AI-controlled ants in a dynamic environment.
 
-## Features
-
-### Food System
-
-- **Food Collection**: Ants can pick up and carry food
-- **Food Spawning**: New food items spawn periodically
-- **Food Tracking**: Visual indication when ants are carrying food (red tint)
-
-### Game Controls
-
-- **Speed Control**: Toggle between normal and fast simulation speed
-- **Spawn Rate**: Adjust the rate at which new food items appear
-- **HUD Display**: Shows current:
-  - Food count in colony
-  - Number of ants
-  - Simulation speed
-  - Food spawn rate
+[Play the game](https://cafca.github.io/pecorino/)
 
 ## Development
 
