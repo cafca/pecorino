@@ -23,4 +23,4 @@ export const MIN_ZOOM = 1.5;
 export const MAX_ZOOM = 5;
 
 // Add DEFAULT_SHOW_TARGETS to the exports
-export const DEFAULT_SHOW_TARGETS = true;
+export const DEFAULT_SHOW_TARGETS = false;
