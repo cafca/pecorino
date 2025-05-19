@@ -1,3 +1,5 @@
+/// <reference lib="webworker" />
+
 import {
   createWorld,
   defineQuery,
@@ -73,6 +75,7 @@ export class Game {
   private pheromoneFrameCounter = 0;
   private pheromoneDecaySystem: (delta: number) => void;
   private pheromoneDepositSystem: (delta: number) => void;
+  private pheromoneWorker: Worker;
 
   // HUD state
   private colonyFood = 0;
@@ -117,7 +120,16 @@ export class Game {
     );
     Pheromone.lastUpdateTime[pheromoneEntity] = 0;
 
-    this.pheromoneDecaySystem = PheromoneDecaySystem(this.world);
+    // Initialize pheromone worker
+    this.pheromoneWorker = new Worker(
+      new URL("../workers/pheromoneWorker.ts", import.meta.url),
+      { type: "module" }
+    );
+
+    this.pheromoneDecaySystem = PheromoneDecaySystem(
+      this.world,
+      this.pheromoneWorker
+    );
     this.pheromoneDepositSystem = PheromoneDepositSystem(this.world);
   }
 
@@ -426,5 +438,12 @@ export class Game {
     entities.forEach((eid) => {
       TargetVisualization.visible[eid] = this.showTargets ? 1 : 0;
     });
+  }
+
+  public destroy() {
+    // Terminate the worker when the game is destroyed
+    this.pheromoneWorker.terminate();
+
+    // ... existing code ...
   }
 }

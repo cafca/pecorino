@@ -1,49 +1,65 @@
+/// <reference lib="webworker" />
+
 import type { IWorld } from "bitecs";
 import { defineQuery } from "bitecs";
-import {
-  Pheromone,
-  PHEROMONE_DECAY_RATE,
-  PHEROMONE_DIFFUSION_RATE,
-  PHEROMONE_DEPOSIT_RATE,
-  pheromoneGrids,
-} from "../game/components/Pheromone";
-import { PHEROMONE_GRID_SIZE } from "../game/constants";
+import { Pheromone, pheromoneGrids } from "../game/components/Pheromone";
+import { PHEROMONE_GRID_SIZE, PHEROMONE_DEPOSIT_RATE } from "../game/constants";
 import { Position, Food } from "../game/components";
 
+let isWorkerBusy = false;
+
 // System for updating pheromone decay and diffusion
-export function PheromoneDecaySystem(world: IWorld) {
+export function PheromoneDecaySystem(world: IWorld, worker: Worker) {
   const pheromoneQuery = defineQuery([Pheromone]);
 
-  return (delta: number) => {
-    const pheromoneEntities = pheromoneQuery(world);
-    if (pheromoneEntities.length === 0) return;
-
-    const pheromoneEntity = pheromoneEntities[0];
-    const gridWidth = Pheromone.gridWidth[pheromoneEntity];
-    const gridHeight = Pheromone.gridHeight[pheromoneEntity];
-    const grid = pheromoneGrids[pheromoneEntity];
-    const currentTime = Date.now() / 1000;
-
-    // Update pheromone grid
-    for (let y = 0; y < gridHeight; y++) {
-      for (let x = 0; x < gridWidth; x++) {
-        const idx = y * gridWidth + x;
-        // Apply decay
-        grid[idx] *= Math.exp(-PHEROMONE_DECAY_RATE * delta);
-        // Apply diffusion
-        if (x > 0)
-          grid[idx] += grid[idx - 1] * PHEROMONE_DIFFUSION_RATE * delta;
-        if (x < gridWidth - 1)
-          grid[idx] += grid[idx + 1] * PHEROMONE_DIFFUSION_RATE * delta;
-        if (y > 0)
-          grid[idx] += grid[idx - gridWidth] * PHEROMONE_DIFFUSION_RATE * delta;
-        if (y < gridHeight - 1)
-          grid[idx] += grid[idx + gridWidth] * PHEROMONE_DIFFUSION_RATE * delta;
+  return (delta: number): Promise<void> => {
+    return new Promise((resolve) => {
+      const pheromoneEntities = pheromoneQuery(world);
+      if (pheromoneEntities.length === 0) {
+        resolve();
+        return;
       }
-    }
 
-    // Update last update time
-    Pheromone.lastUpdateTime[pheromoneEntity] = currentTime;
+      // Skip if worker is still processing
+      if (isWorkerBusy) {
+        resolve();
+        return;
+      }
+
+      const pheromoneEntity = pheromoneEntities[0];
+      const gridWidth = Pheromone.gridWidth[pheromoneEntity];
+      const gridHeight = Pheromone.gridHeight[pheromoneEntity];
+      const grid = pheromoneGrids[pheromoneEntity];
+
+      // Create a copy of the grid for transfer
+      const gridCopy = new Float32Array(grid);
+
+      // Mark worker as busy
+      isWorkerBusy = true;
+
+      // Handle worker response
+      worker.onmessage = (e) => {
+        if (e.data.type === "updateComplete") {
+          // Update the grid with the processed data
+          pheromoneGrids[pheromoneEntity] = e.data.grid;
+          // Mark worker as available
+          isWorkerBusy = false;
+          resolve();
+        }
+      };
+
+      // Send grid to worker for processing
+      worker.postMessage(
+        {
+          type: "update",
+          grid: gridCopy,
+          gridWidth,
+          gridHeight,
+          delta,
+        },
+        [gridCopy.buffer]
+      );
+    });
   };
 }
 

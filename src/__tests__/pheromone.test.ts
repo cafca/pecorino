@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createWorld, addComponent, addEntity, type IWorld } from "bitecs";
 import { Pheromone, pheromoneGrids } from "../game/components/Pheromone";
 import {
@@ -16,14 +16,64 @@ import {
 // Use a small grid for tests
 const TEST_GRID_SIZE = 10;
 
+interface WorkerMessage {
+  grid: Float32Array;
+  gridWidth: number;
+  gridHeight: number;
+  delta: number;
+}
+
+// Mock worker for testing
+class MockWorker {
+  onmessage: ((e: MessageEvent) => void) | null = null;
+  postMessage = vi.fn((data: WorkerMessage) => {
+    // Simulate worker processing
+    const { grid, gridWidth, gridHeight, delta } = data;
+    const newGrid = new Float32Array(grid);
+
+    // Apply decay and diffusion
+    for (let y = 0; y < gridHeight; y++) {
+      for (let x = 0; x < gridWidth; x++) {
+        const idx = y * gridWidth + x;
+        // Apply decay
+        newGrid[idx] = grid[idx] * Math.exp(-PHEROMONE_DECAY_RATE * delta);
+
+        // Apply diffusion
+        if (x > 0)
+          newGrid[idx] += grid[idx - 1] * PHEROMONE_DIFFUSION_RATE * delta;
+        if (x < gridWidth - 1)
+          newGrid[idx] += grid[idx + 1] * PHEROMONE_DIFFUSION_RATE * delta;
+        if (y > 0)
+          newGrid[idx] +=
+            grid[idx - gridWidth] * PHEROMONE_DIFFUSION_RATE * delta;
+        if (y < gridHeight - 1)
+          newGrid[idx] +=
+            grid[idx + gridWidth] * PHEROMONE_DIFFUSION_RATE * delta;
+      }
+    }
+
+    // Simulate worker response
+    if (this.onmessage) {
+      this.onmessage({
+        data: { type: "updateComplete", grid: newGrid },
+      } as MessageEvent);
+    }
+  });
+}
+
 describe("PheromoneDecaySystem", () => {
   let world: IWorld;
   let pheromoneDecaySystem: (delta: number) => void;
   let pheromoneEntity: number;
+  let mockWorker: MockWorker;
 
   beforeEach(() => {
     world = createWorld();
-    pheromoneDecaySystem = PheromoneDecaySystem(world);
+    mockWorker = new MockWorker();
+    pheromoneDecaySystem = PheromoneDecaySystem(
+      world,
+      mockWorker as unknown as Worker
+    );
 
     // Create pheromone entity with a 10x10 grid
     pheromoneEntity = addEntity(world);
@@ -36,27 +86,27 @@ describe("PheromoneDecaySystem", () => {
     Pheromone.lastUpdateTime[pheromoneEntity] = 0;
   });
 
-  it("should decay pheromones over time", () => {
+  it("should decay pheromones over time", async () => {
     // Set initial pheromone value
     pheromoneGrids[pheromoneEntity][0] = 1.0;
 
-    // Run system for 1 second
-    pheromoneDecaySystem(1.0);
+    // Run system for 1 second and wait for completion
+    await pheromoneDecaySystem(1.0);
 
     // Check that value has decayed according to decay rate
     const expectedValue = 1.0 * Math.exp(-PHEROMONE_DECAY_RATE);
     expect(pheromoneGrids[pheromoneEntity][0]).toBeCloseTo(expectedValue, 5);
   });
 
-  it("should diffuse pheromones to neighboring cells", () => {
+  it("should diffuse pheromones to neighboring cells", async () => {
     // Set initial pheromone value in center
     const centerX = 5;
     const centerY = 5;
     const centerIdx = centerY * TEST_GRID_SIZE + centerX;
     pheromoneGrids[pheromoneEntity][centerIdx] = 1.0;
 
-    // Run system for 1 second
-    pheromoneDecaySystem(1.0);
+    // Run system for 1 second and wait for completion
+    await pheromoneDecaySystem(1.0);
 
     // Check that neighboring cells have received some pheromone
     const neighbors = [
@@ -69,7 +119,6 @@ describe("PheromoneDecaySystem", () => {
     neighbors.forEach((idx) => {
       expect(pheromoneGrids[pheromoneEntity][idx]).toBeGreaterThan(0);
       // Each neighbor should receive approximately PHEROMONE_DIFFUSION_RATE * delta of the center value
-      // The actual value is PHEROMONE_DIFFUSION_RATE, since decay is applied before diffusion in the system
       const expectedValue = PHEROMONE_DIFFUSION_RATE;
       expect(pheromoneGrids[pheromoneEntity][idx]).toBeCloseTo(
         expectedValue,
