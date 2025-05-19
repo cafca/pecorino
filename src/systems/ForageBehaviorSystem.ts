@@ -17,6 +17,8 @@ import {
   EXPLORATION_TARGET_TIMEOUT,
   EXPLORATION_TARGET_REACHED_DISTANCE,
   ANT_SPAWN_COST,
+  WORLD_WIDTH,
+  WORLD_HEIGHT,
 } from "../game/constants";
 import { createAnt } from "../game/prefabs/ant";
 
@@ -101,17 +103,16 @@ const handleFindFoodState = (
       let newTargetY = y + Math.sin(angle) * distance;
 
       // If the target is outside the screen, move it back inside
-      const screenWidth = window.innerWidth;
-      const screenHeight = window.innerHeight;
+      // Use world bounds instead of screen size
       if (newTargetX < 0) {
         newTargetX = 0;
-      } else if (newTargetX > screenWidth) {
-        newTargetX = screenWidth;
+      } else if (newTargetX > WORLD_WIDTH) {
+        newTargetX = WORLD_WIDTH;
       }
       if (newTargetY < 0) {
         newTargetY = 0;
-      } else if (newTargetY > screenHeight) {
-        newTargetY = screenHeight;
+      } else if (newTargetY > WORLD_HEIGHT) {
+        newTargetY = WORLD_HEIGHT;
       }
 
       Target.x[ant] = newTargetX;

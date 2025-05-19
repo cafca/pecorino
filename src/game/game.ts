@@ -158,9 +158,9 @@ export class Game {
   }
 
   private initDemo() {
-    // Create nest at center of screen
-    const centerX = this.app.screen.width / 2;
-    const centerY = this.app.screen.height / 2;
+    // Create nest at center of world map
+    const centerX = WORLD_WIDTH / 2;
+    const centerY = WORLD_HEIGHT / 2;
     this.createNest(centerX, centerY);
 
     // Create player ant slightly below nest

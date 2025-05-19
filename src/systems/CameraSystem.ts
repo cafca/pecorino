@@ -1,7 +1,12 @@
 import { defineQuery, type IWorld } from "bitecs";
 import { Camera } from "../game/components/Camera";
 import { Container } from "pixi.js";
-import { ZOOM_LERP_FACTOR, MIN_ZOOM, MAX_ZOOM } from "@/game/constants";
+import {
+  ZOOM_LERP_FACTOR,
+  MIN_ZOOM,
+  MAX_ZOOM,
+  ZOOM_SPEED,
+} from "@/game/constants";
 
 export const CameraSystem = (world: IWorld, gameContainer: Container) => {
   const cameraQuery = defineQuery([Camera]);
@@ -20,7 +25,7 @@ export const CameraSystem = (world: IWorld, gameContainer: Container) => {
     if (entities.length === 0) return;
 
     const camera = entities[0];
-    const zoomSpeed = 0.05;
+    const zoomSpeed = ZOOM_SPEED;
     const zoomDelta = -Math.sign(e.deltaY) * zoomSpeed;
     targetZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, targetZoom + zoomDelta));
 
