@@ -27,3 +27,10 @@ export const DEFAULT_SHOW_TARGETS = false;
 
 // Movement constants
 export const ANT_SPEED = 100; // Speed in world coordinates per second
+
+// Pheromone constants
+export const PHEROMONE_GRID_SIZE = 4; // Grid cells per world unit
+export const PHEROMONE_DECAY_RATE = 0.1; // Decay per second
+export const PHEROMONE_DIFFUSION_RATE = 0.1; // Diffusion rate
+export const PHEROMONE_DEPOSIT_RATE = 1.0; // Amount deposited per second
+export const PHEROMONE_UPDATE_INTERVAL = 10; // Update decay/diffusion every N frames

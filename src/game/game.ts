@@ -1,4 +1,11 @@
-import { createWorld, defineQuery, removeEntity, type IWorld } from "bitecs";
+import {
+  createWorld,
+  defineQuery,
+  removeEntity,
+  type IWorld,
+  addEntity,
+  addComponent,
+} from "bitecs";
 import { Application, Assets, Container, Graphics } from "pixi.js";
 import { CompositeTilemap } from "@pixi/tilemap";
 import {
@@ -21,9 +28,11 @@ import {
 import { TargetVisualizationSystem } from "../systems/TargetVisualizationSystem";
 import {
   INITIAL_SPAWN_RATE,
-  WORLD_HEIGHT,
   WORLD_WIDTH,
+  WORLD_HEIGHT,
   DEFAULT_SHOW_TARGETS,
+  PHEROMONE_GRID_SIZE,
+  PHEROMONE_UPDATE_INTERVAL,
 } from "./constants";
 import { MapLoader } from "./mapLoader";
 import { createAnt } from "./prefabs/ant";
@@ -31,6 +40,11 @@ import { createFood } from "./prefabs/food";
 import { createNest } from "./prefabs/nest";
 import { createCamera } from "./prefabs/camera";
 import { CameraSystem } from "../systems/CameraSystem";
+import { Pheromone, pheromoneGrids } from "./components/Pheromone";
+import {
+  PheromoneDecaySystem,
+  PheromoneDepositSystem,
+} from "../systems/PheromoneSystem";
 
 export class Game {
   public readonly world = createWorld();
@@ -56,6 +70,9 @@ export class Game {
   private targetGraphics: Graphics;
   private showTargets = DEFAULT_SHOW_TARGETS;
   private mapLoader: MapLoader;
+  private pheromoneFrameCounter = 0;
+  private pheromoneDecaySystem: (delta: number) => void;
+  private pheromoneDepositSystem: (delta: number) => void;
 
   // HUD state
   private colonyFood = 0;
@@ -88,6 +105,20 @@ export class Game {
     // Initialize camera using the prefab
     createCamera(this.world);
     this.cameraSystem = CameraSystem(this.world, this.gameContainer);
+
+    // Initialize pheromone grid
+    const pheromoneEntity = addEntity(this.world);
+    addComponent(this.world, Pheromone, pheromoneEntity);
+    Pheromone.gridWidth[pheromoneEntity] = WORLD_WIDTH * PHEROMONE_GRID_SIZE;
+    Pheromone.gridHeight[pheromoneEntity] = WORLD_HEIGHT * PHEROMONE_GRID_SIZE;
+    pheromoneGrids[pheromoneEntity] = new Float32Array(
+      Pheromone.gridWidth[pheromoneEntity] *
+        Pheromone.gridHeight[pheromoneEntity]
+    );
+    Pheromone.lastUpdateTime[pheromoneEntity] = 0;
+
+    this.pheromoneDecaySystem = PheromoneDecaySystem(this.world);
+    this.pheromoneDepositSystem = PheromoneDepositSystem(this.world);
   }
 
   private async initAssets() {
@@ -214,6 +245,16 @@ export class Game {
 
         // Update HUD state
         this.updateHUDState();
+
+        // Update pheromone deposits every frame
+        this.pheromoneDepositSystem(adjustedDelta);
+
+        // Update pheromone decay and diffusion every PHEROMONE_UPDATE_INTERVAL frames
+        this.pheromoneFrameCounter++;
+        if (this.pheromoneFrameCounter >= PHEROMONE_UPDATE_INTERVAL) {
+          this.pheromoneDecaySystem(adjustedDelta * PHEROMONE_UPDATE_INTERVAL);
+          this.pheromoneFrameCounter = 0;
+        }
       }
     });
   }
