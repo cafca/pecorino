@@ -93,31 +93,31 @@ export class Game {
     // Add assets to the bundle
     Assets.add({
       alias: "ant",
-      src: "/assets/sprites/ant.png",
+      src: "/pecorino/assets/sprites/ant.png",
     });
     Assets.add({
       alias: "food",
-      src: "/assets/sprites/food.png",
+      src: "/pecorino/assets/sprites/food.png",
     });
     Assets.add({
       alias: "nest",
-      src: "/assets/sprites/nest.png",
+      src: "/pecorino/assets/sprites/nest.png",
     });
     Assets.add({
       alias: "tree",
-      src: "/assets/sprites/tree.png",
+      src: "/pecorino/assets/sprites/tree.png",
     });
     Assets.add({
       alias: "map",
-      src: "/assets/maps/map02.json",
+      src: "/pecorino/assets/maps/map02.json",
     });
     Assets.add({
       alias: "tilesheet",
-      src: "/assets/tilesets/terrain_tiles_v2.png",
+      src: "/pecorino/assets/tilesets/terrain_tiles_v2.png",
     });
     Assets.add({
       alias: "tileset",
-      src: "/assets/tilesets/terrain2.xml",
+      src: "/pecorino/assets/tilesets/terrain2.xml",
     });
 
     // Load all assets
