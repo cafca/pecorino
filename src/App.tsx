@@ -97,8 +97,9 @@ export const App: React.FC = () => {
         onClick={(e) => {
           if (game) {
             const rect = e.currentTarget.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const camera = game.getCamera();
+            const x = (e.clientX - rect.left - camera.x) / camera.zoom;
+            const y = (e.clientY - rect.top - camera.y) / camera.zoom;
             game.createFood(x, y);
           }
         }}

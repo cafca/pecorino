@@ -24,3 +24,6 @@ export const MAX_ZOOM = 5;
 
 // Add DEFAULT_SHOW_TARGETS to the exports
 export const DEFAULT_SHOW_TARGETS = false;
+
+// Movement constants
+export const ANT_SPEED = 100; // Speed in world coordinates per second

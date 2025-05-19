@@ -11,7 +11,7 @@ import {
   Sprite,
   TargetVisualization,
 } from "@/game/components";
-import { ANT_MAX_AGE } from "../constants";
+import { ANT_MAX_AGE, ANT_SPEED } from "../constants";
 
 export interface AntConfig {
   x: number;
@@ -30,7 +30,7 @@ export function createAnt(world: IWorld, config: AntConfig) {
   // Set initial values
   Position.x[eid] = config.x;
   Position.y[eid] = config.y;
-  PlayerControlled.speed[eid] = 100;
+  PlayerControlled.speed[eid] = ANT_SPEED;
   PlayerControlled.isPlayer[eid] = config.isPlayer ? 1 : 0;
   Sprite.texture[eid] = 0; // ant texture
   Sprite.width[eid] = 32;

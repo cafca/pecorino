@@ -9,6 +9,7 @@ import {
   Nest,
   TargetVisualization,
 } from "./components";
+import { Camera } from "./components/Camera";
 import {
   InputSystem,
   MovementSystem,
@@ -298,6 +299,18 @@ export class Game {
       simulationSpeed: this.simulationSpeed,
       spawnRate: this.spawnRate,
       showTargets: this.showTargets,
+    };
+  }
+
+  public getCamera() {
+    const cameraQuery = defineQuery([Camera]);
+    const entities = cameraQuery(this.world);
+    if (entities.length === 0) return { x: 0, y: 0, zoom: 1 };
+    const camera = entities[0];
+    return {
+      x: Camera.x[camera],
+      y: Camera.y[camera],
+      zoom: Camera.zoom[camera],
     };
   }
 

@@ -12,7 +12,12 @@ import {
 } from "../game/components";
 import { createWorld, addComponent, addEntity, defineQuery } from "bitecs";
 import { MovementSystem, ForageBehaviorSystem } from "../systems";
-import { NEST_RADIUS, WORLD_WIDTH, WORLD_HEIGHT } from "@/game/constants";
+import {
+  NEST_RADIUS,
+  WORLD_WIDTH,
+  WORLD_HEIGHT,
+  ANT_SPEED,
+} from "@/game/constants";
 import { createAnt } from "@/game/prefabs/ant";
 import { createNest } from "@/game/prefabs/nest";
 import { createCamera } from "@/game/prefabs/camera";
@@ -101,25 +106,29 @@ describe("MovementSystem", () => {
 
     addComponent(world, Position, entity1);
     addComponent(world, Velocity, entity1);
+    addComponent(world, PlayerControlled, entity1);
     addComponent(world, Position, entity2);
     addComponent(world, Velocity, entity2);
+    addComponent(world, PlayerControlled, entity2);
 
     Position.x[entity1] = 0;
     Position.y[entity1] = 0;
-    Velocity.x[entity1] = 1;
-    Velocity.y[entity1] = 1;
+    PlayerControlled.speed[entity1] = ANT_SPEED;
+    Velocity.x[entity1] = ANT_SPEED;
+    Velocity.y[entity1] = ANT_SPEED;
 
     Position.x[entity2] = 10;
     Position.y[entity2] = 10;
-    Velocity.x[entity2] = -1;
-    Velocity.y[entity2] = -1;
+    PlayerControlled.speed[entity2] = ANT_SPEED;
+    Velocity.x[entity2] = -ANT_SPEED;
+    Velocity.y[entity2] = -ANT_SPEED;
 
     movementSystem(1.0);
 
-    expect(Math.round(Position.x[entity1])).toBe(1);
-    expect(Math.round(Position.y[entity1])).toBe(1);
-    expect(Math.round(Position.x[entity2])).toBe(9);
-    expect(Math.round(Position.y[entity2])).toBe(9);
+    expect(Math.round(Position.x[entity1])).toBe(ANT_SPEED);
+    expect(Math.round(Position.y[entity1])).toBe(ANT_SPEED);
+    expect(Math.round(Position.x[entity2])).toBe(0);
+    expect(Math.round(Position.y[entity2])).toBe(0);
   });
 
   it("should keep entities within grid boundaries", () => {
