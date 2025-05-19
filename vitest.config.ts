@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 
@@ -11,12 +11,10 @@ export default defineConfig({
       "@": resolve(__dirname, "./src"),
     },
   },
-  server: {
-    port: 3000,
-    open: true,
-  },
-  build: {
-    target: "esnext",
-    sourcemap: true,
+  test: {
+    globals: true,
+    environment: "jsdom",
+    include: ["src/__tests__/**/*.{test,spec}.ts"],
+    exclude: ["tests/**/*", "**/node_modules/**"],
   },
 });
