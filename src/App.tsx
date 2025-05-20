@@ -2,7 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Game } from "./game/game";
 import { HUD } from "./game/HUD";
 import { LiveGraph } from "./game/LiveGraph";
-import { INITIAL_SPAWN_RATE, DEFAULT_SHOW_TARGETS } from "./game/constants";
+import {
+  INITIAL_SPAWN_RATE,
+  DEFAULT_SHOW_TARGETS,
+  DEFAULT_SHOW_PHEROMONES,
+} from "./game/constants";
 
 declare global {
   interface Window {
@@ -20,11 +24,15 @@ export const App: React.FC = () => {
     spawnRate: INITIAL_SPAWN_RATE,
     showTargets: DEFAULT_SHOW_TARGETS,
   });
+  const [showPheromones, setShowPheromones] = useState(DEFAULT_SHOW_PHEROMONES);
 
   useEffect(() => {
     const initGame = async () => {
       const gameInstance = await Game.create();
       setGame(gameInstance);
+      setShowPheromones(
+        gameInstance["showPheromones"] ?? DEFAULT_SHOW_PHEROMONES
+      );
 
       // Make game instance available globally for testing
       window.game = gameInstance;
@@ -71,6 +79,13 @@ export const App: React.FC = () => {
     if (game) {
       game.toggleTargetVisualization();
       setHudState(game.getHUDState());
+    }
+  };
+
+  const handleTogglePheromones = () => {
+    if (game) {
+      game.togglePheromoneOverlay();
+      setShowPheromones((prev) => !prev);
     }
   };
 
@@ -122,10 +137,12 @@ export const App: React.FC = () => {
           simulationSpeed={hudState.simulationSpeed}
           spawnRate={hudState.spawnRate}
           showTargets={hudState.showTargets}
+          showPheromones={showPheromones}
           onSpeedToggle={handleSpeedToggle}
           onSpawnRateChange={handleSpawnRateChange}
           onAntCountChange={handleAntCountChange}
           onToggleTargets={handleToggleTargets}
+          onTogglePheromones={handleTogglePheromones}
         />
         <LiveGraph
           foodInWorld={hudState.foodInWorld}

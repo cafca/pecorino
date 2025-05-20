@@ -9,8 +9,9 @@ import { Position, Food } from "../game/components";
 import {
   PHEROMONE_DECAY_RATE,
   PHEROMONE_DIFFUSION_RATE,
-  PHEROMONE_DEPOSIT_RATE,
   PHEROMONE_GRID_SIZE,
+  PHEROMONE_TRAIL_INITIAL_STRENGTH,
+  PHEROMONE_TRAIL_SLOPE,
 } from "../game/constants";
 
 // Use a small grid for tests
@@ -136,7 +137,6 @@ describe("PheromoneDepositSystem", () => {
   beforeEach(() => {
     world = createWorld();
     pheromoneDepositSystem = PheromoneDepositSystem(world);
-
     // Create pheromone entity with a 10x10 grid
     pheromoneEntity = addEntity(world);
     addComponent(world, Pheromone, pheromoneEntity);
@@ -160,9 +160,9 @@ describe("PheromoneDepositSystem", () => {
     // Run system for 1 second
     pheromoneDepositSystem(1.0);
 
-    // Check that pheromone was deposited according to deposit rate
+    // Check that pheromone was deposited according to new trail logic
     expect(pheromoneGrids[pheromoneEntity][0]).toBeCloseTo(
-      PHEROMONE_DEPOSIT_RATE,
+      PHEROMONE_TRAIL_INITIAL_STRENGTH,
       5
     );
   });
@@ -210,9 +210,107 @@ describe("PheromoneDepositSystem", () => {
       const gridY = Math.floor(y * PHEROMONE_GRID_SIZE);
       const idx = gridY * TEST_GRID_SIZE + gridX;
       expect(pheromoneGrids[pheromoneEntity][idx]).toBeCloseTo(
-        PHEROMONE_DEPOSIT_RATE,
+        PHEROMONE_TRAIL_INITIAL_STRENGTH,
         5
       );
     });
+  });
+});
+
+describe("PheromoneDepositSystem - Simple", () => {
+  let world: IWorld;
+  let pheromoneDepositSystem: (delta: number) => void;
+  let pheromoneEntity: number;
+
+  beforeEach(() => {
+    world = createWorld();
+    pheromoneDepositSystem = PheromoneDepositSystem(world);
+    // Create pheromone entity with a 10x10 grid
+    pheromoneEntity = addEntity(world);
+    addComponent(world, Pheromone, pheromoneEntity);
+    Pheromone.gridWidth[pheromoneEntity] = TEST_GRID_SIZE;
+    Pheromone.gridHeight[pheromoneEntity] = TEST_GRID_SIZE;
+    pheromoneGrids[pheromoneEntity] = new Float32Array(
+      TEST_GRID_SIZE * TEST_GRID_SIZE
+    );
+    Pheromone.lastUpdateTime[pheromoneEntity] = 0;
+  });
+
+  it("deposits at pickup spot", () => {
+    const ant = addEntity(world);
+    addComponent(world, Position, ant);
+    addComponent(world, Food, ant);
+    Position.x[ant] = 0;
+    Position.y[ant] = 0;
+    Food.amount[ant] = 1;
+    pheromoneDepositSystem(1.0);
+    const gridX = Math.floor(0 * PHEROMONE_GRID_SIZE);
+    const gridY = Math.floor(0 * PHEROMONE_GRID_SIZE);
+    const idx = gridY * TEST_GRID_SIZE + gridX;
+    // Elapsed time = 0
+    const expected =
+      PHEROMONE_TRAIL_INITIAL_STRENGTH *
+      Math.exp(-0 * PHEROMONE_TRAIL_SLOPE) *
+      1.0;
+    expect(pheromoneGrids[pheromoneEntity][idx]).toBeCloseTo(expected, 5);
+  });
+
+  it("deposits at new cell after moving with time-based decay", () => {
+    const ant = addEntity(world);
+    addComponent(world, Position, ant);
+    addComponent(world, Food, ant);
+    Position.x[ant] = 0;
+    Position.y[ant] = 0;
+    Food.amount[ant] = 1;
+    pheromoneDepositSystem(1.0); // elapsed = 0
+    // Move to (1,0)
+    Position.x[ant] = 1;
+    pheromoneDepositSystem(1.0); // elapsed = 1
+    const gridX = Math.floor(1 * PHEROMONE_GRID_SIZE);
+    const gridY = Math.floor(0 * PHEROMONE_GRID_SIZE);
+    const idx = gridY * TEST_GRID_SIZE + gridX;
+    const elapsed = 1.0;
+    const expected =
+      PHEROMONE_TRAIL_INITIAL_STRENGTH *
+      Math.exp(-elapsed * PHEROMONE_TRAIL_SLOPE) *
+      1.0;
+    expect(pheromoneGrids[pheromoneEntity][idx]).toBeCloseTo(expected, 5);
+  });
+
+  it("deposits with cumulative time-based decay over multiple steps", () => {
+    const ant = addEntity(world);
+    addComponent(world, Position, ant);
+    addComponent(world, Food, ant);
+    Position.x[ant] = 0;
+    Position.y[ant] = 0;
+    Food.amount[ant] = 1;
+    pheromoneDepositSystem(1.0); // elapsed = 0
+    Position.x[ant] = 1;
+    pheromoneDepositSystem(1.0); // elapsed = 1
+    Position.x[ant] = 2;
+    pheromoneDepositSystem(1.0); // elapsed = 2
+    const gridX = Math.floor(2 * PHEROMONE_GRID_SIZE);
+    const gridY = Math.floor(0 * PHEROMONE_GRID_SIZE);
+    const idx = gridY * TEST_GRID_SIZE + gridX;
+    const elapsed = 2.0;
+    const expected =
+      PHEROMONE_TRAIL_INITIAL_STRENGTH *
+      Math.exp(-elapsed * PHEROMONE_TRAIL_SLOPE) *
+      1.0;
+    expect(pheromoneGrids[pheromoneEntity][idx]).toBeCloseTo(expected, 5);
+  });
+
+  it("does not deposit if not carrying food", () => {
+    const ant = addEntity(world);
+    addComponent(world, Position, ant);
+    addComponent(world, Food, ant);
+    Position.x[ant] = 0;
+    Position.y[ant] = 0;
+    Food.amount[ant] = 0;
+    pheromoneDepositSystem(1.0);
+    const gridX = Math.floor(0 * PHEROMONE_GRID_SIZE);
+    const gridY = Math.floor(0 * PHEROMONE_GRID_SIZE);
+    const idx = gridY * TEST_GRID_SIZE + gridX;
+    expect(pheromoneGrids[pheromoneEntity][idx]).toBe(0);
   });
 });

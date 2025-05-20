@@ -7,10 +7,12 @@ interface HUDProps {
   simulationSpeed: number;
   spawnRate: number;
   showTargets: boolean;
+  showPheromones: boolean;
   onSpeedToggle: () => void;
   onSpawnRateChange: (rate: number) => void;
   onAntCountChange: (count: number) => void;
   onToggleTargets: () => void;
+  onTogglePheromones: () => void;
 }
 
 export const HUD: React.FC<HUDProps> = ({
@@ -20,10 +22,12 @@ export const HUD: React.FC<HUDProps> = ({
   simulationSpeed,
   spawnRate,
   showTargets,
+  showPheromones,
   onSpeedToggle,
   onSpawnRateChange,
   onAntCountChange,
   onToggleTargets,
+  onTogglePheromones,
 }) => {
   return (
     <div
@@ -130,6 +134,20 @@ export const HUD: React.FC<HUDProps> = ({
             }}
           >
             {showTargets ? "Hide Targets" : "Show Targets"}
+          </button>
+          <button
+            onClick={onTogglePheromones}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: showPheromones ? "#00ffcc" : "#666",
+              color: showPheromones ? "#222" : "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            {showPheromones ? "Hide Pheromones" : "Show Pheromones"}
           </button>
         </div>
       </div>

@@ -35,6 +35,7 @@ import {
   DEFAULT_SHOW_TARGETS,
   PHEROMONE_GRID_SIZE,
   PHEROMONE_UPDATE_INTERVAL,
+  DEFAULT_SHOW_PHEROMONES,
 } from "./constants";
 import { MapLoader } from "./mapLoader";
 import { createAnt } from "./prefabs/ant";
@@ -82,6 +83,9 @@ export class Game {
   private foodInWorld = 0;
   private antCount = 0;
 
+  private showPheromones = DEFAULT_SHOW_PHEROMONES;
+  private pheromoneOverlay: Graphics;
+
   private constructor(app: Application) {
     this.app = app;
 
@@ -92,6 +96,11 @@ export class Game {
     // Create graphics for target visualization
     this.targetGraphics = new Graphics();
     this.app.stage.addChild(this.targetGraphics);
+
+    // Create pheromone overlay and add it to stage (after gameContainer)
+    this.pheromoneOverlay = new Graphics();
+    this.pheromoneOverlay.visible = this.showPheromones;
+    this.app.stage.addChild(this.pheromoneOverlay);
 
     this.inputSystem = InputSystem(this.world);
     this.movementSystem = MovementSystem(this.world);
@@ -247,6 +256,11 @@ export class Game {
         this.cameraSystem();
         this.targetVisualizationSystem(this.world);
         this.renderSystem();
+        if (this.showPheromones) {
+          this.renderPheromoneOverlay();
+        } else {
+          this.pheromoneOverlay.clear();
+        }
 
         // Handle food spawning
         this.spawnTimer += adjustedDelta;
@@ -438,6 +452,51 @@ export class Game {
     entities.forEach((eid) => {
       TargetVisualization.visible[eid] = this.showTargets ? 1 : 0;
     });
+  }
+
+  public togglePheromoneOverlay() {
+    this.showPheromones = !this.showPheromones;
+    this.pheromoneOverlay.visible = this.showPheromones;
+    console.log(
+      `Pheromone overlay ${this.showPheromones ? "enabled" : "disabled"}`
+    );
+  }
+
+  private renderPheromoneOverlay() {
+    this.pheromoneOverlay.clear();
+    if (!this.showPheromones) return;
+
+    // Find the pheromone entity
+    const pheromoneEntities = Object.keys(pheromoneGrids);
+    if (pheromoneEntities.length === 0) return;
+    const pheromoneEntity = Number(pheromoneEntities[0]);
+    const grid = pheromoneGrids[pheromoneEntity];
+    const gridWidth = Pheromone.gridWidth[pheromoneEntity];
+    const gridHeight = Pheromone.gridHeight[pheromoneEntity];
+    if (!grid) return;
+
+    // Draw each cell as a solid rectangle
+    const cellSize = 1 / PHEROMONE_GRID_SIZE; // Size of each cell in world units
+    for (let y = 0; y < gridHeight; y++) {
+      for (let x = 0; x < gridWidth; x++) {
+        const idx = y * gridWidth + x;
+        const value = grid[idx];
+        if (value > 0) {
+          this.pheromoneOverlay.beginFill(0xff0000, 0.5); // Solid red with 50% opacity
+          this.pheromoneOverlay.drawRect(
+            x * cellSize,
+            y * cellSize,
+            cellSize,
+            cellSize
+          );
+          this.pheromoneOverlay.endFill();
+        }
+      }
+    }
+
+    // Position the overlay to match the game container
+    this.pheromoneOverlay.position.copyFrom(this.gameContainer.position);
+    this.pheromoneOverlay.scale.copyFrom(this.gameContainer.scale);
   }
 
   public destroy() {
